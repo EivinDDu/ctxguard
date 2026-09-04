@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ctxguard"
+version = "0.1.0"
+description = "Scan a repository for prompt-injection payloads before you point an AI coding agent at it."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "EivinDDu" }]
+keywords = [
+    "prompt-injection",
+    "ai-security",
+    "supply-chain",
+    "llm",
+    "mcp",
+    "static-analysis",
+    "coding-agent",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov"]
+
+[project.scripts]
+ctxguard = "ctxguard.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/EivinDDu/ctxguard"
+Issues = "https://github.com/EivinDDu/ctxguard/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ctxguard"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
