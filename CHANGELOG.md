@@ -22,4 +22,5 @@ Initial release.
 - Suppression via `.ctxguardignore` and inline `ctxguard: ignore [RULE…]`
   comments.
 - `ctxguard rules` — list all detection rules.
-- CI matrix (Python 3.9–3.13, Linux + macOS) and SARIF self-scan.
+- CI matrix (Python 3.9–3.13, Linux + macOS); dogfood self-scan and SARIF
+  artifact build on every run.
