@@ -1,0 +1,8 @@
+# ctxguard's own documentation and test corpus necessarily contain the
+# payloads it detects. Suppress those so `ctxguard scan .` stays green.
+README.md
+tests/*
+tests/**
+docs/threat-model.md
+examples/*
+examples/**
