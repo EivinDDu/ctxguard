@@ -24,6 +24,9 @@ tool-description poisoning (CVE-2025-54136) works the same way.
 `ctxguard` is a fast, dependency-free static scanner that flags that content so a
 human reviews it first.
 
+**→ See [`docs/walkthrough.md`](docs/walkthrough.md) for a worked example: five
+planted attacks in a sample repo, and the scan that catches every one.**
+
 ## What it detects
 
 | Family | Examples |
