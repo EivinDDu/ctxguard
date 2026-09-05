@@ -1,0 +1,42 @@
+name: ctxguard
+description: Scan a repository for prompt-injection payloads before an AI coding agent ingests it.
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  path:
+    description: File or directory to scan.
+    required: false
+    default: "."
+  fail-on:
+    description: "Exit non-zero if any finding is at least this severe (critical|high|medium|low|info|none)."
+    required: false
+    default: high
+  args:
+    description: Extra arguments passed verbatim to `ctxguard scan`.
+    required: false
+    default: ""
+  version:
+    description: Version specifier for the ctxguard package (e.g. "==0.1.0"). Defaults to this ref.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install ctxguard
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.version }}" ]; then
+          pip install "ctxguard${{ inputs.version }}"
+        else
+          pip install "git+https://github.com/${{ github.action_repository || 'EivinDDu/ctxguard' }}@${{ github.action_ref || 'main' }}"
+        fi
+    - name: Run ctxguard
+      shell: bash
+      run: ctxguard scan "${{ inputs.path }}" --fail-on "${{ inputs.fail-on }}" --no-color ${{ inputs.args }}

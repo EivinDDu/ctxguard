@@ -97,14 +97,50 @@ source files too.
 ### Pre-commit hook
 
 ```yaml
-- repo: local
+# .pre-commit-config.yaml
+- repo: https://github.com/EivinDDu/ctxguard
+  rev: v0.1.0
   hooks:
     - id: ctxguard
-      name: ctxguard
-      entry: ctxguard scan . --fail-on high
-      language: system
-      pass_filenames: false
 ```
+
+### GitHub Action
+
+```yaml
+# .github/workflows/ctxguard.yml
+name: ctxguard
+on: [push, pull_request]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EivinDDu/ctxguard@v0.1.0
+        with:
+          fail-on: high        # optional (default: high)
+          # path: .
+          # args: --git-history --min-confidence medium
+```
+
+### Suppressing findings
+
+Known-good matches (your own security docs, test fixtures) can be silenced two
+ways:
+
+- **`.ctxguardignore`** at the scan root — one glob per line, optionally
+  scoped to specific rule ids:
+
+  ```
+  docs/threat-model.md            # ignore every rule for this file
+  examples/**                     # ignore a whole tree
+  SECURITY.md:CG101,CG401         # ignore only these rules here
+  ```
+
+- **Inline comment** on the flagged line or the line above it:
+
+  ```markdown
+  <!-- ctxguard: ignore CG401 -- example payload documented on purpose -->
+  ```
 
 ## How it works
 
