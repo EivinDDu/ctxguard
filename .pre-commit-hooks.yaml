@@ -1,0 +1,7 @@
+- id: ctxguard
+  name: ctxguard (inbound prompt-injection scan)
+  description: Scan repo files an AI coding agent ingests for prompt-injection payloads.
+  entry: ctxguard scan --fail-on high
+  language: python
+  pass_filenames: false
+  always_run: true
