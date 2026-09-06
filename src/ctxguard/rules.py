@@ -185,10 +185,12 @@ RULES: List[Rule] = [
         pattern=_rx(
             r"https?://(?:[a-z0-9-]+\.)*(?:webhook\.site|pipedream\.net|"
             r"requestbin\.\w+|requestcatcher\.com|oast\.\w+|burpcollaborator\.net|"
-            r"interact\.sh|ngrok\.(?:io|app|dev)|beeceptor\.com|mockbin\.\w+|"
-            r"canarytokens\.\w+)"
+            r"interact\.sh|ngrok(?:-free)?\.(?:io|app|dev)|beeceptor\.com|mockbin\.\w+|"
+            r"canarytokens\.\w+|smee\.io|hookb\.in|webhookrelay\.com|"
+            r"trycloudflare\.com|loca\.lt|localtunnel\.me|serveo\.net|lhr\.life|"
+            r"dnslog\.cn|\w+\.free\.beeceptor\.com)"
         ),
-        message="URL points at a request-capture / callback service used for exfiltration.",
+        message="URL points at a request-capture / callback / tunnel service used for exfiltration.",
         reference=_OWASP,
     ),
     Rule(

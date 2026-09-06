@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- `CG302` callback-URL list extended with tunnel / relay services
+  (`trycloudflare.com`, `loca.lt`, `localtunnel.me`, `serveo.net`, `lhr.life`,
+  `smee.io`, `hookb.in`, `webhookrelay.com`, `dnslog.cn`, `ngrok-free.app`).
+
 ## [0.2.0] - 2026-09-07
 
 ### Added
