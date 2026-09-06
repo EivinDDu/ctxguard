@@ -78,6 +78,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="also scan recent git commit messages",
     )
     scan_p.add_argument(
+        "--changed",
+        nargs="?",
+        const="HEAD",
+        default=None,
+        metavar="REF",
+        help="scan only files changed vs REF (default: HEAD) plus staged/unstaged/"
+        "untracked — fast pre-commit and PR gating",
+    )
+    scan_p.add_argument(
         "--max-bytes",
         type=int,
         default=DEFAULT_MAX_BYTES,
@@ -105,6 +114,7 @@ def _run_scan(args: argparse.Namespace) -> int:
         max_bytes=args.max_bytes,
         scan_all_text=args.all_text,
         include_git_history=args.git_history,
+        changed_since=args.changed,
     )
     if args.exclude:
         config.exclude_dirs = frozenset(config.exclude_dirs | set(args.exclude))
@@ -137,11 +147,33 @@ def _stdout_is_tty(args: argparse.Namespace) -> bool:
     return sys.stdout.isatty() and not args.output
 
 
+_EXTRA_RULES = [
+    ("CG403", "low", "obfuscation", "Long base64 blob that does not decode to readable text."),
+    ("CG404", "high", "obfuscation", "base64 / hex blob decodes to instruction or secret-like text."),
+    ("CG501", "high", "hidden-unicode", "Unicode Tag characters (U+E00xx); decoded and reported."),
+    ("CG502", "high", "hidden-unicode", "Bidirectional control character (Trojan Source)."),
+    ("CG503", "low", "hidden-unicode", "Zero-width / invisible character run."),
+    ("CG504", "medium", "hidden-unicode", "Private Use Area code-point run."),
+    ("CG505", "medium", "hidden-unicode", "Word mixes Latin with Cyrillic/Greek look-alikes."),
+    ("CG601", "medium", "obfuscation", "Instruction-like text pushed off-screen by a whitespace gap."),
+    ("CG602", "low", "obfuscation", "Very long line containing instruction-like text."),
+    ("CG701", "high", "mcp-tool-poisoning", "MCP tool description carries hidden instructions."),
+    ("CG702", "high", "mcp-tool-poisoning", "MCP server launch command pipes a download into a shell."),
+    ("CG801", "high", "filename-injection", "Filename contains control / invisible / bidi characters."),
+    ("CG802", "medium", "filename-injection", "Filename reads like an instruction to an assistant."),
+]
+
+
 def _run_rules() -> int:
-    for rule in sorted(RULES, key=lambda r: r.id):
-        print(f"{rule.id}  {rule.base_severity.label:<8} {rule.category}")
-        print(f"      {rule.message}")
-    print(f"\n{len(RULES)} regex rules (plus Unicode, layout, MCP and filename detectors).")
+    rows = [(r.id, r.base_severity.label, r.category, r.message) for r in RULES]
+    rows += _EXTRA_RULES
+    for rid, sev, cat, msg in sorted(rows):
+        print(f"{rid}  {sev:<8} {cat}")
+        print(f"      {msg}")
+    print(
+        f"\n{len(RULES)} regex rules + {len(_EXTRA_RULES)} analytic detectors "
+        "(encoded-payload, Unicode, layout, MCP, filename)."
+    )
     return 0
 
 

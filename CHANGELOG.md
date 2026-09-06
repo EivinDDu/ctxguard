@@ -3,6 +3,24 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] - 2026-09-07
+
+### Added
+- `--changed [REF]` — scan only files changed vs `REF` (default `HEAD`) plus
+  staged / unstaged / untracked files. Fast pre-commit and PR-diff gating.
+- Encoded-payload detector: base64 and hex blobs are decoded and the plaintext
+  rescanned (`CG404`, with the decoded text in the finding). `CG403` is now the
+  low-severity "long blob that doesn't decode to text" note.
+- `CG106` — jailbreak / guardrail-removal phrasing (`developer mode`,
+  `do anything now`, `ignore your guidelines`, …).
+- `CG306` — reverse-shell command patterns (`bash -i >& /dev/tcp/…`, `nc -e`,
+  `python -c '…socket…'`).
+
+### Changed
+- `ctxguard rules` now lists the analytic detectors (`CG4xx`–`CG8xx`) alongside
+  the regex rules.
+- `CG403` moved from the regex table into the encoded-payload detector.
+
 ## [0.1.0] - 2026-09-05
 
 Initial release.

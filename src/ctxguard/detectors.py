@@ -13,9 +13,11 @@ context-adjusted severity via :func:`adjust_severity`.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import re
-from typing import Callable, Iterable, List
+from typing import Callable, Iterable, List, Optional
 
 from ctxguard.contexts import (
     CONTEXT_SEVERITY_BOOST,
@@ -302,6 +304,103 @@ def padded_and_offscreen_lines(doc: Document) -> Iterable[Finding]:
                 reference="https://labs.cloudsecurityalliance.org/",
                 context=doc.context,
             )
+
+
+# ---------------------------------------------------------------------------
+# Encoded payloads: decode base64 / hex blobs and rescan the plaintext
+# ---------------------------------------------------------------------------
+
+_B64_RUN = re.compile(r"(?<![A-Za-z0-9+/=])[A-Za-z0-9+/]{24,}={0,2}(?![A-Za-z0-9+/=])")
+_HEX_RUN = re.compile(r"(?<![0-9A-Fa-f])(?:[0-9A-Fa-f]{2}){20,}(?![0-9A-Fa-f])")
+
+# Markers that make a decoded string worth surfacing as an active payload.
+_DECODED_PAYLOAD = re.compile(
+    r"ignore\s+(?:all\s+)?(?:previous|prior|above)|system\s+prompt|you\s+are\s+now|"
+    r"\bnew\s+instructions?\b|\.env\b|\bapi[_\s-]?key\b|\bsecret\b|\btoken\b|"
+    r"\bpassword\b|~/\.aws|~/\.ssh|\.ssh/|id_rsa|exfiltrat|do\s+not\s+tell|"
+    r"curl\b[^\n|]{0,80}\|\s*(?:ba)?sh|<\s*IMPORTANT\s*>|assistant\s*:",
+    re.IGNORECASE,
+)
+
+
+def _texty(s: str) -> bool:
+    if len(s) < 6:
+        return False
+    ok = sum(1 for c in s if c.isprintable() or c in "\r\n\t")
+    return ok / len(s) >= 0.85
+
+
+def _decode_b64(blob: str) -> Optional[str]:
+    pad = (-len(blob)) % 4
+    if pad == 3:  # not a valid base64 length
+        return None
+    try:
+        raw = base64.b64decode(blob + "=" * pad, validate=True)
+    except (binascii.Error, ValueError):
+        return None
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
+def _decode_hex(blob: str) -> Optional[str]:
+    try:
+        raw = bytes.fromhex(blob)
+    except ValueError:
+        return None
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
+@detector
+def encoded_payloads(doc: Document) -> Iterable[Finding]:
+    seen: set = set()
+    for lineno, line in enumerate(doc.lines, start=1):
+        for rx, kind, decode in (
+            (_B64_RUN, "base64", _decode_b64),
+            (_HEX_RUN, "hex", _decode_hex),
+        ):
+            for match in rx.finditer(line):
+                blob = match.group(0)
+                key = (lineno, match.start(), kind)
+                if key in seen:
+                    continue
+                seen.add(key)
+                decoded = decode(blob)
+                if decoded and _texty(decoded) and _DECODED_PAYLOAD.search(decoded):
+                    yield Finding(
+                        rule_id="CG404",
+                        category="obfuscation",
+                        severity=adjust_severity(Severity.HIGH, doc.context),
+                        message=f"{kind} blob decodes to instruction / secret-like "
+                        f"text: {_clip(decoded, 120)!r}",
+                        path=doc.path,
+                        line=lineno,
+                        column=match.start() + 1,
+                        snippet=doc.snippet_for_line(lineno),
+                        confidence="high",
+                        reference="https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+                        context=doc.context,
+                        extra={"encoding": kind, "decoded": _clip(decoded, 400)},
+                    )
+                elif kind == "base64" and len(blob) >= 80 and (decoded is None or not _texty(decoded)):
+                    yield Finding(
+                        rule_id="CG403",
+                        category="obfuscation",
+                        severity=adjust_severity(Severity.LOW, doc.context),
+                        message="Long base64 blob that does not decode to readable "
+                        "text; inspect manually.",
+                        path=doc.path,
+                        line=lineno,
+                        column=match.start() + 1,
+                        snippet=doc.snippet_for_line(lineno),
+                        confidence="low",
+                        reference="https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+                        context=doc.context,
+                    )
 
 
 # ---------------------------------------------------------------------------

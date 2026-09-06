@@ -32,6 +32,7 @@ class ScanConfig:
     scan_all_text: bool = False  # scan any UTF-8 text file, not just known contexts
     include_git_history: bool = False
     git_history_limit: int = 200
+    changed_since: Optional[str] = None  # git ref: scan only files changed vs it
 
 
 @dataclass
@@ -75,15 +76,51 @@ def _should_consider(rel_path: str, config: ScanConfig) -> bool:
     return ext in TEXT_EXTENSIONS
 
 
-def iter_files(config: ScanConfig) -> Iterable[Path]:
+def iter_files(config: ScanConfig, only: Optional[Iterable[str]] = None) -> Iterable[Path]:
     root = config.root
     if root.is_file():
         yield root
+        return
+    if only is not None:
+        for rel in sorted(set(only)):
+            p = root / rel
+            if p.is_file():
+                yield p
         return
     for dirpath, dirnames, filenames in os.walk(root, followlinks=config.follow_symlinks):
         dirnames[:] = sorted(d for d in dirnames if d not in config.exclude_dirs)
         for name in sorted(filenames):
             yield Path(dirpath) / name
+
+
+def _git_changed_paths(root: Path, ref: str, result: "ScanResult") -> Optional[set]:
+    """Repo-relative paths that differ from ``ref`` (committed, staged, unstaged,
+    and untracked-but-not-ignored). Returns ``None`` if git cannot answer."""
+
+    if not (root / ".git").exists():
+        result.errors.append(f"--changed: {root} is not a git repository")
+        return None
+    commands = (
+        ["diff", "--name-only", "--diff-filter=d", ref, "--"],
+        ["diff", "--name-only", "--diff-filter=d", "--cached", "--"],
+        ["diff", "--name-only", "--diff-filter=d", "--"],
+        ["ls-files", "--others", "--exclude-standard"],
+    )
+    paths: set = set()
+    for args in commands:
+        try:
+            out = subprocess.run(
+                ["git", "-C", str(root), *args],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=True,
+            ).stdout
+        except (subprocess.SubprocessError, OSError) as exc:
+            result.errors.append(f"--changed: git {' '.join(args)}: {exc}")
+            return None
+        paths.update(p.strip() for p in out.splitlines() if p.strip())
+    return paths
 
 
 def _rel(path: Path, config: ScanConfig) -> str:
@@ -130,7 +167,16 @@ def scan(config: ScanConfig) -> ScanResult:
     detectors = all_detectors()
     ignore_entries = _load_ignore_file(config)
 
-    for path in iter_files(config):
+    only: Optional[set] = None
+    if config.changed_since is not None and not config.root.is_file():
+        root = config.root if config.root.is_dir() else config.root.parent
+        only = _git_changed_paths(root, config.changed_since, result)
+        if only is None:
+            return result  # git failed; error already recorded
+        if not only:
+            return result  # nothing changed — clean by construction
+
+    for path in iter_files(config, only):
         rel = _rel(path, config)
         if not _should_consider(rel, config):
             continue
@@ -259,6 +305,7 @@ def scan_path(
     max_bytes: int = DEFAULT_MAX_BYTES,
     scan_all_text: bool = False,
     include_git_history: bool = False,
+    changed_since: Optional[str] = None,
     extra_excludes: Sequence[str] = (),
 ) -> ScanResult:
     """Convenience wrapper used by the CLI and tests."""
@@ -270,5 +317,6 @@ def scan_path(
         exclude_dirs=frozenset(excludes),
         scan_all_text=scan_all_text,
         include_git_history=include_git_history,
+        changed_since=changed_since,
     )
     return scan(config)

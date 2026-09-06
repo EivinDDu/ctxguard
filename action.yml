@@ -18,7 +18,7 @@ inputs:
     required: false
     default: ""
   version:
-    description: Version specifier for the ctxguard package (e.g. "==0.1.0"). Defaults to this ref.
+    description: Version specifier for the ctxguard package (e.g. "==0.2.0"). Defaults to this ref.
     required: false
     default: ""
 

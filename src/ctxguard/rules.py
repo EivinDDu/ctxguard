@@ -118,6 +118,22 @@ RULES: List[Rule] = [
         message="Hidden-priority marker of the kind used in MCP tool-poisoning payloads.",
         reference=_MCP_POISON,
     ),
+    Rule(
+        id="CG106",
+        category="instruction-override",
+        base_severity=Severity.MEDIUM,
+        confidence="medium",
+        pattern=_rx(
+            r"\bdo\s+anything\s+now\b|\bDAN\s+mode\b|"
+            r"\bdeveloper\s+mode\s+(?:enabled|on|output)\b|\bjailbreak\b|"
+            r"\bwithout\s+any\s+(?:restrictions|filters|guidelines|guardrails)\b|"
+            r"\byou\s+are\s+not\s+bound\s+by\b|"
+            r"\bignore\s+your\s+(?:guidelines|guardrails|safety|training|programming)\b|"
+            r"\bpretend\s+(?:you\s+have\s+no|there\s+are\s+no)\s+(?:restrictions|rules)\b"
+        ),
+        message="Jailbreak / guardrail-removal phrasing.",
+        reference=_OWASP,
+    ),
     # -- Instruction aimed at an assistant, coupled with an action --------
     Rule(
         id="CG201",
@@ -205,6 +221,22 @@ RULES: List[Rule] = [
         message="Pipe-to-shell one-liner (remote code execution primitive).",
         reference=_OWASP,
     ),
+    Rule(
+        id="CG306",
+        category="code-execution",
+        base_severity=Severity.HIGH,
+        confidence="high",
+        pattern=re.compile(
+            r"bash\s+-i\s*>&?\s*/dev/tcp/|"
+            r"/dev/tcp/\d{1,3}(?:\.\d{1,3}){3}/\d+|"
+            r"\bnc\s+(?:-\w*e\w*|-\w*c\w*)\b[^\n]{0,50}\b\d{1,5}\b|"
+            r"\bpython[0-9.]*\s+-c\s+['\"][^'\"]{0,200}"
+            r"(?:socket|pty)\.[^'\"]{0,200}(?:/bin/(?:ba)?sh|exec)",
+            re.IGNORECASE | re.DOTALL,
+        ),
+        message="Reverse-shell command pattern.",
+        reference=_OWASP,
+    ),
     # -- Obfuscation / smuggling (regex-expressible parts) ---------------
     Rule(
         id="CG401",
@@ -231,17 +263,8 @@ RULES: List[Rule] = [
         message="Inline style hides text visually while leaving it in the token stream.",
         reference=_CSA_README,
     ),
-    Rule(
-        id="CG403",
-        category="obfuscation",
-        base_severity=Severity.LOW,
-        confidence="low",
-        pattern=re.compile(
-            r"(?:[A-Za-z0-9+/]{80,}={0,2})",
-        ),
-        message="Long base64-looking blob; decode and inspect for hidden instructions.",
-        reference=_OWASP,
-    ),
+    # CG403 / CG404 (encoded-payload detection) live in ctxguard.detectors:
+    # they decode base64 / hex blobs and rescan the plaintext.
 ]
 
 
