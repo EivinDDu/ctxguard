@@ -3,12 +3,38 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.3.0] - 2026-09-06
+
+### Added
+- **Benchmark harness** — `ctxguard bench` scores the detectors against a
+  labelled corpus in `benchmark/` (38 cases) and reports precision, recall, F1,
+  false-positive rate and per-rule accuracy. `--min-recall` / `--max-fp-rate` /
+  `--min-rule-accuracy` make it a CI gate; CI now fails on any detection
+  regression or new false positive.
+- **`CG406` — deobfuscated rescan.** Zero-width / Unicode-Tag characters are
+  stripped and common Cyrillic/Greek homoglyphs folded to ASCII, then the rule
+  table is re-run. Catches `I​g​n​o​r​e all previous instructions` and
+  `іgnоrе …`-style evasions that defeat a raw regex.
+- **`CG107`** — attempts to make the model disclose its own prompt / prior
+  context (`repeat the text above verbatim`, `what is your system prompt`).
+- **`CG203`** — fake context boundaries and `system override` banners used to
+  inject a task into retrieved / tool-result content.
+- **`CG307`** — DNS-based exfiltration (`dig $(cat …).attacker`).
+- **`CG308`** — exfiltration / persistence via `git remote add` + `git push` to
+  a non-GitHub URL, or a `postinstall` hook that shells out.
 
 ### Changed
 - `CG302` callback-URL list extended with tunnel / relay services
   (`trycloudflare.com`, `loca.lt`, `localtunnel.me`, `serveo.net`, `lhr.life`,
   `smee.io`, `hookb.in`, `webhookrelay.com`, `dnslog.cn`, `ngrok-free.app`).
+- `CG103` no longer fires on ordinary `### System Requirements`-style headings
+  (needs a bare role header, a trailing colon, or `### System prompt`).
+- `CG802` (instruction-like filename) now needs a real imperative phrase, not
+  just a keyword like `curl` — `curl_download.md` is no longer flagged.
+
+### Fixed
+- Two false positives found by the new benchmark corpus (the `CG103` and
+  `CG802` cases above).
 
 ## [0.2.0] - 2026-09-07
 

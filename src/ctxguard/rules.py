@@ -87,8 +87,10 @@ RULES: List[Rule] = [
         pattern=re.compile(
             r"<\s*/?\s*(?:system|assistant|user|developer|tool)\s*>|"
             r"<\|(?:im_start|im_end|system|assistant|user|endoftext)\|>|"
-            r"\[/?INST\]|\[/?SYS\]|###\s*(?:System|Instruction|Assistant)\b|"
-            r"^\s*(?:System|Assistant|Developer)\s*:",
+            r"\[/?INST\]|\[/?SYS\]|"
+            r"###\s*(?:System|Instruction|Assistant)\s*(?::|$)|"
+            r"###\s*System\s+prompt\b|"
+            r"^\s*(?:System|Assistant|Developer)\s*:\s",
             re.IGNORECASE | re.MULTILINE,
         ),
         message="Chat-template / role-delimiter tokens embedded in prose.",
@@ -134,6 +136,21 @@ RULES: List[Rule] = [
         message="Jailbreak / guardrail-removal phrasing.",
         reference=_OWASP,
     ),
+    Rule(
+        id="CG107",
+        category="instruction-override",
+        base_severity=Severity.HIGH,
+        confidence="medium",
+        pattern=_rx(
+            r"\b(?:repeat|print|output|reveal|show|display|summar(?:ize|ise))\b"
+            r"[^.\n]{0,40}\b(?:the\s+)?(?:words?|text|everything|content|instructions?|"
+            r"prompt)\b[^.\n]{0,20}\b(?:above|before|preceding|so\s+far|verbatim)\b|"
+            r"\bwhat\s+(?:is|are|was)\b[^.\n]{0,20}\byour\s+(?:system\s+prompt|"
+            r"initial\s+instructions?|original\s+instructions?)\b"
+        ),
+        message="Attempt to make the model disclose its own prompt / prior context.",
+        reference=_OWASP,
+    ),
     # -- Instruction aimed at an assistant, coupled with an action --------
     Rule(
         id="CG201",
@@ -161,6 +178,23 @@ RULES: List[Rule] = [
             + _ACTION
         ),
         message="Imperative framing ('your task is', 'you must run…').",
+        reference=_CSA_README,
+    ),
+    Rule(
+        id="CG203",
+        category="agent-directed-instruction",
+        base_severity=Severity.MEDIUM,
+        confidence="medium",
+        pattern=_rx(
+            r"(?:^|\n)\s*(?:-{3,}|={3,}|\*{3,}|#{1,6})?\s*"
+            r"(?:end\s+of\s+(?:document|file|context|content|input)|"
+            r"begin\s+new\s+(?:instructions?|task|prompt)|"
+            r"actual\s+(?:instructions?|task)\s+(?:start|follow)|"
+            r"system\s+(?:override|message|note)|"
+            r"\[\s*(?:system|admin|important)\s*\])\b[^.\n]{0,10}[:\-]?"
+        ),
+        message="Fake context boundary / 'system' banner used to inject a new task "
+        "into retrieved content.",
         reference=_CSA_README,
     ),
     # -- Data exfiltration primitives -----------------------------------
@@ -237,6 +271,33 @@ RULES: List[Rule] = [
             re.IGNORECASE | re.DOTALL,
         ),
         message="Reverse-shell command pattern.",
+        reference=_OWASP,
+    ),
+    Rule(
+        id="CG307",
+        category="exfiltration",
+        base_severity=Severity.HIGH,
+        confidence="medium",
+        pattern=_rx(
+            r"\b(?:dig|nslookup|host)\b[^\n]{0,40}\$\((?:cat|base64|whoami|env)\b|"
+            r"\b(?:dig|nslookup)\b\s+\+?\w*\s+[\w.$(){}-]+\.(?:oast\.\w+|"
+            r"dnslog\.\w+|interact\.sh|burpcollaborator\.net|nip\.io)\b"
+        ),
+        message="DNS-based exfiltration (encode data into a DNS lookup).",
+        reference=_OWASP,
+    ),
+    Rule(
+        id="CG308",
+        category="exfiltration",
+        base_severity=Severity.HIGH,
+        confidence="medium",
+        pattern=_rx(
+            r"\bgit\s+remote\s+add\b[^\n]{0,60}https?://|"
+            r"\bgit\s+push\b[^\n]{0,60}https?://(?![^\s]*github\.com/)|"
+            r"\b(?:add|create)\b[^.\n]{0,30}\bpostinstall\b[^.\n]{0,30}\bscript\b|"
+            r"\"postinstall\"\s*:\s*\"[^\"]*(?:curl|wget|nc|http)"
+        ),
+        message="Exfiltration / persistence via version control or package hooks.",
         reference=_OWASP,
     ),
     # -- Obfuscation / smuggling (regex-expressible parts) ---------------

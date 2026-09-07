@@ -97,6 +97,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("rules", help="list detection rules")
 
+    bench_p = sub.add_parser(
+        "bench", help="score the detectors against the labelled corpus in benchmark/"
+    )
+    bench_p.add_argument("--dir", help="benchmark directory (default: ./benchmark)")
+    bench_p.add_argument("--json", action="store_true", help="emit metrics as JSON")
+    bench_p.add_argument(
+        "--min-recall", type=float, default=0.0, help="exit 1 if recall is below this"
+    )
+    bench_p.add_argument(
+        "--max-fp-rate", type=float, default=1.0,
+        help="exit 1 if the false-positive rate exceeds this",
+    )
+    bench_p.add_argument(
+        "--min-rule-accuracy", type=float, default=0.0,
+        help="exit 1 if fewer than this fraction of malicious cases hit their named rule",
+    )
+
     return parser
 
 
@@ -150,6 +167,7 @@ def _stdout_is_tty(args: argparse.Namespace) -> bool:
 _EXTRA_RULES = [
     ("CG403", "low", "obfuscation", "Long base64 blob that does not decode to readable text."),
     ("CG404", "high", "obfuscation", "base64 / hex blob decodes to instruction or secret-like text."),
+    ("CG406", "high", "obfuscation", "Payload visible only after stripping invisible / look-alike characters."),
     ("CG501", "high", "hidden-unicode", "Unicode Tag characters (U+E00xx); decoded and reported."),
     ("CG502", "high", "hidden-unicode", "Bidirectional control character (Trojan Source)."),
     ("CG503", "low", "hidden-unicode", "Zero-width / invisible character run."),
@@ -177,6 +195,40 @@ def _run_rules() -> int:
     return 0
 
 
+def _run_bench(args: argparse.Namespace) -> int:
+    from ctxguard.benchmark import DEFAULT_BENCH_DIR, run_benchmark
+
+    bench_dir = Path(args.dir).resolve() if args.dir else DEFAULT_BENCH_DIR
+    if not (bench_dir / "cases.jsonl").is_file():
+        print(f"ctxguard: no benchmark corpus at {bench_dir}", file=sys.stderr)
+        return 2
+
+    res = run_benchmark(bench_dir)
+    if args.json:
+        import json as _json
+
+        print(_json.dumps(res.to_dict(), indent=2))
+    else:
+        print(
+            f"cases: {res.total}   "
+            f"TP {res.tp}  FN {res.fn}  FP {res.fp}  TN {res.tn}"
+        )
+        print(
+            f"precision {res.precision:.3f}   recall {res.recall:.3f}   "
+            f"F1 {res.f1:.3f}   FP-rate {res.fp_rate:.3f}   "
+            f"rule-accuracy {res.rule_accuracy:.3f}"
+        )
+        for case, reason in res.misses:
+            print(f"  ✗ {case.path}: {reason}")
+
+    ok = (
+        res.recall >= args.min_recall
+        and res.fp_rate <= args.max_fp_rate
+        and res.rule_accuracy >= args.min_rule_accuracy
+    )
+    return 0 if ok else 1
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -185,6 +237,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             return _run_scan(args)
         if args.command == "rules":
             return _run_rules()
+        if args.command == "bench":
+            return _run_bench(args)
     except KeyboardInterrupt:  # pragma: no cover
         return 130
     parser.error("unknown command")

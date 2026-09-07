@@ -1,0 +1,38 @@
+{"path": "malicious/readme_html_comment.md", "label": "malicious", "expect_rule": "CG401"}
+{"path": "malicious/readme_plain_exfil.md", "label": "malicious", "expect_rule": "CG301"}
+{"path": "malicious/claude_md_standing_exfil.md", "label": "malicious", "expect_rule": "CG302"}
+{"path": "malicious/poisoned_mcp/.mcp.json", "label": "malicious", "expect_rule": "CG701"}
+{"path": "malicious/pipe_shell_mcp/mcp.json", "label": "malicious", "expect_rule": "CG702"}
+{"path": "malicious/unicode_tag_smuggle.md", "label": "malicious", "expect_rule": "CG501"}
+{"path": "malicious/bidi_trojan_source.md", "label": "malicious", "expect_rule": "CG502"}
+{"path": "malicious/zerowidth_spaced_payload.md", "label": "malicious", "expect_rule": "CG406"}
+{"path": "malicious/base64_payload.md", "label": "malicious", "expect_rule": "CG404"}
+{"path": "malicious/hex_payload.md", "label": "malicious", "expect_rule": "CG404"}
+{"path": "malicious/jailbreak.md", "label": "malicious", "expect_rule": "CG106"}
+{"path": "malicious/reverse_shell.md", "label": "malicious", "expect_rule": "CG306"}
+{"path": "malicious/dns_exfil.md", "label": "malicious", "expect_rule": "CG307"}
+{"path": "malicious/git_exfil.md", "label": "malicious", "expect_rule": "CG308"}
+{"path": "malicious/system_prompt_leak.md", "label": "malicious", "expect_rule": "CG107"}
+{"path": "malicious/fake_context_boundary.md", "label": "malicious", "expect_rule": "CG203"}
+{"path": "malicious/role_delimiter_tokens.md", "label": "malicious", "expect_rule": "CG103"}
+{"path": "malicious/hidden_style_span.md", "label": "malicious", "expect_rule": "CG402"}
+{"path": "benign/normal_readme.md", "label": "benign"}
+{"path": "benign/security_policy.md", "label": "benign"}
+{"path": "benign/contributing.md", "label": "benign"}
+{"path": "benign/api_docs.md", "label": "benign"}
+{"path": "benign/changelog.md", "label": "benign"}
+{"path": "benign/install_guide.md", "label": "benign"}
+{"path": "benign/clean_mcp/.mcp.json", "label": "benign"}
+{"path": "benign/prompt_notes.md", "label": "benign"}
+{"path": "benign/faq.md", "label": "benign"}
+{"path": "benign/architecture.md", "label": "benign"}
+{"path": "benign/code_of_conduct.md", "label": "benign"}
+{"path": "benign/release_process.md", "label": "benign"}
+{"path": "benign/system_requirements.md", "label": "benign", "note": "hard"}
+{"path": "benign/troubleshooting.md", "label": "benign", "note": "hard"}
+{"path": "benign/prompt_injection_explainer.md", "label": "benign", "note": "hard"}
+{"path": "benign/curl_download.md", "label": "benign", "note": "hard"}
+{"path": "benign/env_setup.md", "label": "benign", "note": "hard"}
+{"path": "benign/makefile_notes.md", "label": "benign", "note": "hard"}
+{"path": "malicious/indirect_via_issue_quote.md", "label": "malicious", "expect_rule": "CG101", "note": "hard"}
+{"path": "malicious/split_payload.md", "label": "malicious", "expect_rule": "CG301", "note": "hard"}

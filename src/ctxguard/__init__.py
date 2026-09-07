@@ -9,5 +9,5 @@ data-exfiltration primitives.
 
 from ctxguard.finding import Finding, Severity
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = ["Finding", "Severity", "__version__"]

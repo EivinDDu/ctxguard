@@ -267,6 +267,16 @@ _INSTRUCTIONISH = re.compile(
     re.IGNORECASE,
 )
 
+# A filename only counts as injection if it spells out an actual imperative,
+# not merely because it contains a word like "curl" or "execute".
+_FILENAME_INSTRUCTION = re.compile(
+    r"ignore\s+(?:all\s+)?(?:previous\s+)?(?:instructions?|prompts?)|"
+    r"disregard\s+(?:the\s+)?(?:above|previous)|"
+    r"do\s+not\s+tell|you\s+must\b|your\s+(?:task|instructions?)\s+is|"
+    r"system\s+prompt|run\s+curl|curl\s+\S+\s+sh|exfiltrat",
+    re.IGNORECASE,
+)
+
 
 @detector
 def padded_and_offscreen_lines(doc: Document) -> Iterable[Finding]:
@@ -404,6 +414,75 @@ def encoded_payloads(doc: Document) -> Iterable[Finding]:
 
 
 # ---------------------------------------------------------------------------
+# Deobfuscated rescan: strip invisible chars + fold look-alikes, rescan rules
+# ---------------------------------------------------------------------------
+
+# Common Cyrillic/Greek confusables -> ASCII. Deliberately small and high-signal.
+_HOMOGLYPH_FOLD = {
+    "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "х": "x", "у": "y",
+    "і": "i", "ј": "j", "ѕ": "s", "ԁ": "d", "һ": "h", "ո": "n", "г": "r",
+    "ν": "v", "ο": "o", "ρ": "p", "τ": "t", "α": "a", "ι": "i", "κ": "k",
+    "ѐ": "e", "ё": "e", "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M",
+    "Н": "H", "О": "O", "Р": "P", "С": "C", "Т": "T", "Х": "X",
+}
+_INVISIBLE = set(_ZERO_WIDTH)
+
+
+def _deobfuscate(text: str):
+    """Return (cleaned_text, offsets) with invisible chars dropped and common
+    homoglyphs folded to ASCII. ``offsets[i]`` is the original index of cleaned
+    character ``i``."""
+
+    out: List[str] = []
+    offsets: List[int] = []
+    changed = False
+    for i, ch in enumerate(text):
+        if ch in _INVISIBLE or _is_tag_char(ch):
+            changed = True
+            continue
+        folded = _HOMOGLYPH_FOLD.get(ch)
+        if folded is not None:
+            changed = True
+            out.append(folded)
+        else:
+            out.append(ch)
+        offsets.append(i)
+    return ("".join(out), offsets) if changed else (text, None)
+
+
+@detector
+def deobfuscated_rescan(doc: Document) -> Iterable[Finding]:
+    cleaned, offsets = _deobfuscate(doc.raw_text)
+    if offsets is None:
+        return
+    raw = doc.raw_text
+    for rule in RULES:
+        for match in rule.pattern.finditer(cleaned):
+            fragment = match.group(0)
+            # Already visible in the raw text -> run_rules reported it.
+            if fragment and fragment in raw:
+                continue
+            start = offsets[match.start()] if match.start() < len(offsets) else 0
+            line, col = doc.locate(start)
+            sev = Severity(max(int(rule.base_severity), int(Severity.HIGH)))
+            yield Finding(
+                rule_id="CG406",
+                category="obfuscation",
+                severity=adjust_severity(sev, doc.context),
+                message=f"Payload matching {rule.id} ({rule.message.rstrip('.')}) is "
+                "only visible after removing invisible / look-alike characters.",
+                path=doc.path,
+                line=line,
+                column=col,
+                snippet=doc.snippet_for_line(line),
+                confidence="high",
+                reference="https://trojansource.codes/",
+                context=doc.context,
+                extra={"revealed_rule": rule.id, "deobfuscated_match": _clip(fragment, 200)},
+            )
+
+
+# ---------------------------------------------------------------------------
 # MCP configuration structure walk
 # ---------------------------------------------------------------------------
 
@@ -522,9 +601,7 @@ def filename_tricks(doc: Document) -> Iterable[Finding]:
             context="filename",
         )
     stem = re.sub(r"[_\-.]+", " ", name)
-    if _INSTRUCTIONISH.search(stem) and re.search(
-        r"\b(ignore|you must|do not tell|system prompt|execute|curl)\b", stem, re.IGNORECASE
-    ):
+    if _FILENAME_INSTRUCTION.search(stem):
         yield Finding(
             rule_id="CG802",
             category="filename-injection",

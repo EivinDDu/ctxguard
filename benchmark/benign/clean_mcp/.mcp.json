@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "./data"
+      ],
+      "tools": [
+        {
+          "name": "read_file",
+          "description": "Read a file from the data directory."
+        },
+        {
+          "name": "list_dir",
+          "description": "List the contents of a directory."
+        }
+      ]
+    }
+  }
+}

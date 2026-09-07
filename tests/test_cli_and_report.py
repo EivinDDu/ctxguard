@@ -80,13 +80,12 @@ def test_cli_fail_on_none_returns_zero(tmp_path):
 
 
 def test_cli_min_severity_filters(tmp_path, capsys):
-    (tmp_path / "README.md").write_text(
-        "Long blob: " + "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVowMTIzNDU2Nzg5" * 3 + "\n"
-    )
-    code = main(["scan", str(tmp_path), "--min-severity", "high", "--no-color"])
-    out = capsys.readouterr().out
-    assert "CG403" not in out
-    assert code == 0
+    # 96 '/' chars: valid base64 length, decodes to non-UTF-8 bytes -> CG403 (low).
+    (tmp_path / "README.md").write_text("Long blob: " + "/" * 96 + "\n")
+    seen = main(["scan", str(tmp_path), "--min-severity", "low", "--no-color", "--fail-on", "none"])
+    assert "CG403" in capsys.readouterr().out and seen == 0
+    hidden = main(["scan", str(tmp_path), "--min-severity", "high", "--no-color"])
+    assert "CG403" not in capsys.readouterr().out and hidden == 0
 
 
 def test_cli_writes_output_file(tmp_path):
@@ -102,4 +101,16 @@ def test_cli_missing_path():
 
 def test_cli_rules_listing(capsys):
     assert main(["rules"]) == 0
-    assert "CG101" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "CG101" in out and "CG406" in out
+
+
+def test_cli_bench_passes_thresholds(capsys):
+    code = main(["bench", "--min-recall", "1.0", "--max-fp-rate", "0.0",
+                 "--min-rule-accuracy", "1.0"])
+    assert code == 0
+    assert "recall 1.000" in capsys.readouterr().out
+
+
+def test_cli_bench_missing_corpus(tmp_path):
+    assert main(["bench", "--dir", str(tmp_path)]) == 2

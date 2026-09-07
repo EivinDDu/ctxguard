@@ -8,3 +8,5 @@ docs/threat-model.md
 docs/walkthrough.md
 examples/*
 examples/**
+benchmark/*
+benchmark/**

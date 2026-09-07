@@ -34,11 +34,14 @@ planted attacks in a sample repo, and the scan that catches every one.**
 | **Instruction override** | `ignore all previous instructions`, `you are now…`, chat-template tokens (`<system>`, `[INST]`, `<\|im_start\|>`), `do not tell the user`, `<IMPORTANT>` priority markers, jailbreak / guardrail-removal phrasing (`developer mode`, `do anything now`, `ignore your guidelines`) |
 | **Agent-directed imperatives** | sentences addressed to "the AI / assistant / agent" that also name an action (`run`, `curl`, `exfiltrate`, `install`, `push`) |
 | **Data exfiltration & RCE** | instructions to send `.env` / tokens / file contents somewhere, callback URLs (`webhook.site`, `ngrok`, `oast`, `requestbin`…), markdown images with query strings, `curl … \| sh`, reverse-shell one-liners (`bash -i >& /dev/tcp/…`) |
+| **Data exfiltration & RCE** *(cont.)* | DNS exfiltration (`dig $(cat …).attacker`), `git remote add` + `git push` to a non-GitHub URL, `postinstall` hooks that shell out |
+| **Context / prompt disclosure** | `repeat the text above verbatim`, `what is your system prompt`, fake `--- END OF DOCUMENT ---` / `system override:` boundaries injected into retrieved content |
 | **Hidden Unicode** | Unicode **Tag** characters `U+E00xx` (decoded and shown), bidirectional overrides (Trojan Source), zero-width runs, Private-Use-Area smuggling, Latin/Cyrillic/Greek homoglyph words |
+| **Deobfuscated rescan** | strips zero-width / tag characters and folds homoglyphs, then re-runs every rule — catches `I​g​n​o​r​e all previous instructions` and `іgnоrе …` evasions |
 | **Encoded payloads** | base64 / hex blobs are decoded and the plaintext rescanned — a hidden `ignore all previous instructions…` inside a base64 string is surfaced with the decoded text |
 | **Layout smuggling** | instruction text pushed off-screen by whitespace, `display:none` / `color:#fff` / `font-size:0` spans, instruction-bearing HTML comments |
 | **MCP config poisoning** | `.mcp.json` `description` / `instructions` fields carrying hidden directives or secret references; server launch commands that pipe a download into a shell |
-| **Filename injection** | control / invisible / bidi characters in filenames, filenames that read like an instruction |
+| **Filename injection** | control / invisible / bidi characters in filenames, filenames that spell out an imperative |
 
 Severity is **boosted by context**: the same string is `medium` in a source
 comment but `critical` in `.mcp.json` or `CLAUDE.md`, because agents load those
@@ -85,6 +88,9 @@ ctxguard scan . --min-severity medium --min-confidence medium
 
 # list every rule
 ctxguard rules
+
+# score the detectors against the labelled corpus
+ctxguard bench
 ```
 
 By default `ctxguard` only reads files an agent treats as context (docs, rule
@@ -104,7 +110,7 @@ source files too.
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/EivinDDu/ctxguard
-  rev: v0.2.0
+  rev: v0.3.0
   hooks:
     - id: ctxguard             # add: args: ["--changed"] for staged-only scans
 ```
@@ -120,7 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: EivinDDu/ctxguard@v0.2.0
+      - uses: EivinDDu/ctxguard@v0.3.0
         with:
           fail-on: high        # optional (default: high)
           # path: .
@@ -156,6 +162,7 @@ path ─▶ file walk (skips vendored dirs, binaries, >1 MB)
      ─▶ run detectors:
           • regex rule table           (ctxguard/rules.py)
           • invisible-Unicode scanner   (decodes U+E00xx tag runs)
+          • deobfuscated rescan         (strip zero-width, fold homoglyphs, re-run rules)
           • encoded-payload scanner     (decodes base64 / hex, rescans plaintext)
           • layout / smuggling scanner
           • MCP JSON structure walk
@@ -164,6 +171,22 @@ path ─▶ file walk (skips vendored dirs, binaries, >1 MB)
 ```
 
 No network calls. No LLM. Deterministic.
+
+## Benchmark
+
+`ctxguard bench` runs the detectors over a labelled corpus in [`benchmark/`](benchmark)
+(20 malicious fixtures across every family, 18 realistic benign ones) and reports
+precision / recall / F1 / false-positive rate. CI fails the build on any
+regression:
+
+```
+cases: 38   TP 20  FN 0  FP 0  TN 18
+precision 1.000   recall 1.000   F1 1.000   FP-rate 0.000   rule-accuracy 1.000
+```
+
+The benign fixtures are the point — normal `README`s, a `SECURITY.md`, setup
+docs that mention API keys, `### System Requirements` headings — content that
+*looks* adjacent to an attack but must not trip the scanner.
 
 ## Limitations
 
@@ -178,7 +201,12 @@ No network calls. No LLM. Deterministic.
 ```bash
 pip install -e ".[dev]"
 pytest
+ctxguard bench          # detection score against benchmark/
 ```
+
+Adding a detector? Add a fixture to `benchmark/malicious/` (and a benign
+counterpart if it could misfire), list it in `benchmark/cases.jsonl`, and keep
+`ctxguard bench` at 100% recall / 0 false positives.
 
 ## License
 
