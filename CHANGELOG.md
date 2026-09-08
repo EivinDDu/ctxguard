@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 > Releases before 0.4.0 were published under the name **ctxguard**; that name was
 > already taken on PyPI. Everything below is written with the current name.
 
+## [0.5.0] - 2026-09-08
+
+### Changed — major false-positive reduction
+
+Running against a 3,300-file real-world repository produced **733 findings
+(75 "critical")**, almost all false positives. After this pass the same repo
+produces **5 findings (0 critical)**, with the benchmark still at 100% recall /
+0 false positives (now 45 cases). Rules tightened:
+
+- **`CG404`** no longer flags a base64 blob just because the decoded text
+  contains a word like `token` or `secret`; it now requires instruction-shaped
+  content, skips `data:` asset URIs, and skips blobs that decode to a structured
+  document (`<!doctype…`, `<svg…`, JSON).
+- **`CG403`** (undecodable long base64) only fires inside `.mcp.json` /
+  agent-instruction files now — elsewhere a stray blob is almost always an asset.
+  It is always low severity (never context-boosted).
+- **`CG201`** requires a real vocative (`Claude, run …`) or `as the assistant, …`
+  rather than any sentence containing "assistant" near a verb.
+- **`CG202`** requires `your real/actual/hidden task is …` or an explicitly
+  malicious verb — plain "your job is to …" no longer matches.
+- **`CG102`** requires a persona/mode object after "you are now" and an override
+  verb after "from now on you"; ordinary "you are now in the directory" prose is
+  ignored.
+- **`CG103`** dropped bare `<user>` / `<developer>` tags (common path
+  placeholders) and `### System` headings; keeps real chat-template delimiters.
+- **`CG401` / `CG402`** require instruction-shaped text, not bare keywords;
+  `CG402` also requires the hidden element to actually contain that text.
+- **`CG601` / `CG602`** use a strict imperative pattern instead of a keyword list.
+- 7 large-repo false-positive fixtures added to the benchmark corpus.
+
 ## [0.4.0] - 2026-09-08
 
 ### Changed

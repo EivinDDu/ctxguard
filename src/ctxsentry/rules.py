@@ -72,9 +72,13 @@ RULES: List[Rule] = [
         base_severity=Severity.HIGH,
         confidence="medium",
         pattern=_rx(
-            r"\byou\s+are\s+now\b|\bfrom\s+now\s+on\s+you\b|"
             r"\bnew\s+(?:instructions?|rules?|system\s+prompt|directive)\s*[:\-]|"
-            r"\bupdated\s+(?:instructions?|system\s+prompt)\s*[:\-]"
+            r"\bupdated\s+(?:instructions?|system\s+prompt)\s*[:\-]|"
+            r"\byou\s+are\s+now\s+(?:a\s+different|an?\s+\w+\s+(?:model|assistant|ai|bot|persona|"
+            r"character)\b|(?:in\s+)?\w+\s+mode\b|unrestricted\b|jailbroken\b|DAN\b|"
+            r"free\s+(?:from|of)\b|operating\s+without\b|allowed\s+to\s+ignore\b|no\s+longer\s+bound)|"
+            r"\bfrom\s+now\s+on[, ]+you\s+(?:will|must|should|shall|are\s+to)\s+"
+            r"(?:ignore|disregard|forget|only|no\s+longer|act\s+as|pretend|behave|respond\s+only)\b"
         ),
         message="Persona / instruction reset directed at the model.",
         reference=_OWASP,
@@ -85,12 +89,11 @@ RULES: List[Rule] = [
         base_severity=Severity.HIGH,
         confidence="high",
         pattern=re.compile(
-            r"<\s*/?\s*(?:system|assistant|user|developer|tool)\s*>|"
+            r"<\s*/?\s*(?:system|assistant)\s*>|"
             r"<\|(?:im_start|im_end|system|assistant|user|endoftext)\|>|"
             r"\[/?INST\]|\[/?SYS\]|"
-            r"###\s*(?:System|Instruction|Assistant)\s*(?::|$)|"
-            r"###\s*System\s+prompt\b|"
-            r"^\s*(?:System|Assistant|Developer)\s*:\s",
+            r"###\s*(?:System\s+prompt|Instruction)\s*(?::|$)|"
+            r"^\s*(?:System|Assistant)\s*:\s+(?:you\b|ignore\b|from\s+now|your\s+(?:new|real)\b)",
             re.IGNORECASE | re.MULTILINE,
         ),
         message="Chat-template / role-delimiter tokens embedded in prose.",
@@ -158,13 +161,16 @@ RULES: List[Rule] = [
         base_severity=Severity.MEDIUM,
         confidence="medium",
         pattern=_rx(
-            r"(?:(?:^|[.!?\n]\s*)|\b(?:as|dear|hey|attention|ok|okay|now)\b[ ,]{0,3})"
-            + _ASSISTANT
-            + r"\b[ ,:]{0,3}[^.\n]{0,60}\b"
-            + _ACTION
-            + r"\b"
+            # Vocative: "Claude, run …" / "Hey AI assistant: exfiltrate …"
+            r"(?:^|[.!?\n]\s*|\b(?:hey|ok|okay|dear|listen|attention)\s+)"
+            r"(?:ai\s+)?(?:assistant|agent|copilot|cursor|claude|chatgpt|gpt|gemini|"
+            r"language\s+model|llm)\s*[,:]\s+(?:please\s+)?" + _ACTION + r"\b"
+            # "As the/an AI assistant, (please) <verb> …"
+            r"|\bas\s+(?:the|an?|my)\s+(?:ai\s+)?(?:assistant|agent|language\s+model|llm|"
+            r"coding\s+(?:agent|assistant))\b[^.\n]{0,40},\s*(?:please\s+|you\s+(?:must|should)\s+)?"
+            + _ACTION + r"\b"
         ),
-        message="Sentence addressed to an AI assistant that also names an action to take.",
+        message="Instruction addressed directly to an AI assistant (vocative or 'as the assistant, …').",
         reference=_CSA_README,
     ),
     Rule(
@@ -173,11 +179,17 @@ RULES: List[Rule] = [
         base_severity=Severity.MEDIUM,
         confidence="low",
         pattern=_rx(
-            r"\byour\s+(?:real\s+)?(?:task|job|goal|instruction|objective)\s+is\b|"
+            r"\byour\s+(?:real|actual|true|only|sole|new|primary|hidden|secret)\s+"
+            r"(?:task|job|goal|instruction|objective|purpose|mission)\s+is\b|"
+            r"\byour\s+(?:task|job|goal|objective)\s+is\s+to\s+"
+            r"(?:exfiltrat|send|leak|reveal|disclose|ignore|delete|curl|run\b|execute|"
+            r"forward|upload|print\s+the|email)|"
             r"\byou\s+(?:must|should|need\s+to|have\s+to|are\s+required\s+to)\s+"
-            + _ACTION
+            r"(?:immediately\s+|now\s+|first\s+)?"
+            r"(?:exfiltrat|curl|run\s+the\s+following|ignore\s+(?:all\s+)?previous|"
+            r"delete\s+all|reveal\s+the|print\s+the\s+system|send\s+(?:me|the\s+contents))"
         ),
-        message="Imperative framing ('your task is', 'you must run…').",
+        message="Imperative framing ('your real task is…', 'you must exfiltrate…').",
         reference=_CSA_README,
     ),
     Rule(
@@ -204,11 +216,15 @@ RULES: List[Rule] = [
         base_severity=Severity.HIGH,
         confidence="medium",
         pattern=_rx(
-            r"\b(?:send|upload|exfiltrate|transmit|forward|leak|e-?mail)\b[^.\n]{0,40}"
-            r"(?:\b(?:secrets?|tokens?|api[_\s-]?keys?|access[_\s-]?keys?|credentials?|"
-            r"passwords?|private\s+keys?|ssh\s+keys?|dotenv)\b|\.env\b)"
+            r"(?<!\bnot\s)(?<!n't\s)(?<!\bnever\s)(?<!\bwithout\s)"
+            r"\b(?:send|upload|exfiltrate|transmit|forward|e-?mail|post|paste|leak)\b"
+            r"[^.\n]{0,45}?(?:\.env\b|\bdotenv\b|\bsecrets?\b|\bapi[_\s-]?keys?\b|"
+            r"\baccess[_\s-]?keys?\b|\bcredentials?\b|\bprivate\s+keys?\b|\bssh\s+keys?\b|"
+            r"\bid_rsa\b|~/\.(?:aws|ssh|config)\b)"
+            r"[^.\n]{0,60}?(?:\bto\s+(?:me\b|us\b|my\b|the\s+(?:following|attacker|server|"
+            r"endpoint|address|url))|\bhttps?://|[\w.+-]+@[\w.-]+\.[a-z]{2,})"
         ),
-        message="Instruction to send secrets somewhere.",
+        message="Instruction to send secrets to an external destination.",
         reference=_OWASP,
     ),
     Rule(
@@ -307,8 +323,13 @@ RULES: List[Rule] = [
         base_severity=Severity.MEDIUM,
         confidence="low",
         pattern=re.compile(
-            r"<!--[^>]*?\b(?:ignore|instruction|system|assistant|you\s+must|"
-            r"do\s+not\s+tell|exfiltrate|api[_\s-]?key|token|prompt)\b[^>]*?-->",
+            r"<!--(?:(?!-->).)*?(?:"
+            r"\bignore\s+(?:(?!-->)[^\n]){0,30}?\b(?:instructions?|prompts?|rules?|context)\b|"
+            r"\bdisregard\s+(?:the\s+)?(?:above|previous)\b|"
+            r"\bdo\s+not\s+(?:tell|mention|inform)\b|\byou\s+must\s+\w+|"
+            r"\bexfiltrat|\bsystem\s+prompt\b|<\s*important\s*>|"
+            r"\bcurl\b(?:(?!-->).){0,50}\|\s*(?:ba)?sh|\bnew\s+instructions?\s*:"
+            r")(?:(?!-->).)*?-->",
             re.IGNORECASE | re.DOTALL,
         ),
         message="HTML comment carrying instruction-like text (hidden on render).",
@@ -319,11 +340,19 @@ RULES: List[Rule] = [
         category="obfuscation",
         base_severity=Severity.MEDIUM,
         confidence="medium",
-        pattern=_rx(
-            r"style\s*=\s*[\"'][^\"']*(?:display\s*:\s*none|visibility\s*:\s*hidden|"
-            r"font-size\s*:\s*0|color\s*:\s*(?:#fff(?:fff)?|white|transparent|rgba\(0,\s*0,\s*0,\s*0\)))"
+        pattern=re.compile(
+            r"(?:style\s*=\s*[\"'][^\"']*(?:display\s*:\s*none|visibility\s*:\s*hidden|"
+            r"font-size\s*:\s*0(?:px|pt|em)?\b|"
+            r"(?:color|opacity)\s*:\s*(?:#fff(?:fff)?|white|transparent|0(?:\.0+)?|"
+            r"rgba?\(\s*0[\s,]+0[\s,]+0[\s,/]+0"
+            r"))[^\"']*[\"']|aria-hidden\s*=\s*[\"']true[\"'])"
+            r"[^<>]{0,60}>\s*(?:(?!</).){0,600}?\b(?:"
+            r"ignore\s+(?:all\s+)?(?:previous|prior|the\s+above)|system\s+prompt|"
+            r"you\s+must\s+\w+|do\s+not\s+(?:tell|mention)|exfiltrat|"
+            r"<\s*important\s*>|new\s+instructions?\s*:)",
+            re.IGNORECASE | re.DOTALL,
         ),
-        message="Inline style hides text visually while leaving it in the token stream.",
+        message="Element hidden from view but still in the token stream carries instruction-like text.",
         reference=_CSA_README,
     ),
     # CG403 / CG404 (encoded-payload detection) live in ctxsentry.detectors:

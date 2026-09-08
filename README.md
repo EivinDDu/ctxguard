@@ -179,18 +179,22 @@ No network calls. No LLM. Deterministic.
 ## Benchmark
 
 `ctxsentry bench` runs the detectors over a labelled corpus in [`benchmark/`](benchmark)
-(20 malicious fixtures across every family, 18 realistic benign ones) and reports
+(20 malicious fixtures across every family, 25 realistic benign ones) and reports
 precision / recall / F1 / false-positive rate. CI fails the build on any
 regression:
 
 ```
-cases: 38   TP 20  FN 0  FP 0  TN 18
+cases: 45   TP 20  FN 0  FP 0  TN 25
 precision 1.000   recall 1.000   F1 1.000   FP-rate 0.000   rule-accuracy 1.000
 ```
 
 The benign fixtures are the point — normal `README`s, a `SECURITY.md`, setup
-docs that mention API keys, `### System Requirements` headings — content that
-*looks* adjacent to an attack but must not trip the scanner.
+docs that mention API keys, `### System Requirements` headings, hidden-for-a11y
+`display:none` spans, `data:` font URIs, path placeholders like
+`/Users/<user>/…` — content that *looks* adjacent to an attack but must not
+trip the scanner. Several were added after running ctxsentry against a
+3,300-file production repo, which took its output from **733 findings to 5**
+without losing a single benchmark detection.
 
 ## Limitations
 

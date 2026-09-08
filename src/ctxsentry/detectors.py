@@ -21,6 +21,7 @@ from typing import Callable, Iterable, List, Optional
 
 from ctxsentry.contexts import (
     CONTEXT_SEVERITY_BOOST,
+    CTX_AGENT_INSTRUCTIONS,
     CTX_MCP_CONFIG,
 )
 from ctxsentry.document import Document
@@ -261,9 +262,14 @@ def mixed_script_words(doc: Document) -> Iterable[Finding]:
 # Layout-based smuggling
 # ---------------------------------------------------------------------------
 
-_INSTRUCTIONISH = re.compile(
-    r"\b(ignore|instruction|system\s+prompt|you\s+must|you\s+should|assistant|"
-    r"do\s+not\s+tell|exfiltrat|api[_\s-]?key|secret|token|password|execute|curl)\b",
+# An imperative aimed at a model, used by the layout-smuggling rules
+# where a bare keyword like "token" or "curl" would be almost all false positives.
+_STRICT_INSTRUCTION = re.compile(
+    r"ignore\s+(?:all\s+)?(?:previous|prior|the\s+above)\s+(?:instruction|prompt|rule)|"
+    r"disregard\s+(?:the\s+)?(?:above|previous)|system\s+prompt\s*[:\-]|"
+    r"you\s+must\s+(?:run|execute|send|curl|exfiltrat|reveal|print|delete|ignore)|"
+    r"do\s+not\s+tell\s+(?:the\s+)?(?:user|human)|exfiltrat|<\s*important\s*>|"
+    r"new\s+instructions?\s*[:\-]|curl\b[^\n|]{0,80}\|\s*(?:ba)?sh",
     re.IGNORECASE,
 )
 
@@ -283,7 +289,7 @@ def padded_and_offscreen_lines(doc: Document) -> Iterable[Finding]:
     for lineno, line in enumerate(doc.lines, start=1):
         # Text pushed far right by a long whitespace gap.
         gap = re.search(r"\S([ \t]{60,})\S", line)
-        if gap and _INSTRUCTIONISH.search(line[gap.start():]):
+        if gap and _STRICT_INSTRUCTION.search(line[gap.start():]):
             yield Finding(
                 rule_id="CG601",
                 category="obfuscation",
@@ -299,7 +305,7 @@ def padded_and_offscreen_lines(doc: Document) -> Iterable[Finding]:
                 context=doc.context,
             )
         # Extremely long single line used to bury content / blow context.
-        if len(line) > 3000 and _INSTRUCTIONISH.search(line):
+        if len(line) > 3000 and _STRICT_INSTRUCTION.search(line):
             yield Finding(
                 rule_id="CG602",
                 category="obfuscation",
@@ -323,12 +329,26 @@ def padded_and_offscreen_lines(doc: Document) -> Iterable[Finding]:
 _B64_RUN = re.compile(r"(?<![A-Za-z0-9+/=])[A-Za-z0-9+/]{24,}={0,2}(?![A-Za-z0-9+/=])")
 _HEX_RUN = re.compile(r"(?<![0-9A-Fa-f])(?:[0-9A-Fa-f]{2}){20,}(?![0-9A-Fa-f])")
 
-# Markers that make a decoded string worth surfacing as an active payload.
+# A base64 blob that is plainly an embedded asset, not a smuggled instruction.
+_DATA_ASSET_URI = re.compile(
+    r"data:(?:font|image|audio|video|application/(?:font|octet-stream|pdf|zip))", re.I
+)
+# Decoded content that is itself a structured document / asset (not prose).
+_STRUCTURED_HEAD = re.compile(
+    r"^\s*(?:<!doctype|<html\b|<\?xml|<svg\b|%PDF-|PK\x03\x04|GIF8|\x89PNG|\{|\[)", re.I
+)
+
+# Markers that make a *decoded* string worth surfacing as an active payload —
+# instruction-shaped, not bare nouns like "token" that appear in ordinary docs.
 _DECODED_PAYLOAD = re.compile(
-    r"ignore\s+(?:all\s+)?(?:previous|prior|above)|system\s+prompt|you\s+are\s+now|"
-    r"\bnew\s+instructions?\b|\.env\b|\bapi[_\s-]?key\b|\bsecret\b|\btoken\b|"
-    r"\bpassword\b|~/\.aws|~/\.ssh|\.ssh/|id_rsa|exfiltrat|do\s+not\s+tell|"
-    r"curl\b[^\n|]{0,80}\|\s*(?:ba)?sh|<\s*IMPORTANT\s*>|assistant\s*:",
+    r"ignore\s+(?:all\s+)?(?:previous|prior|the\s+above)\s+(?:instruction|prompt|rule)|"
+    r"disregard\s+(?:the\s+)?(?:above|previous)|"
+    r"\byou\s+are\s+now\s+(?:a|an|in|no\s+longer|unrestricted|jailbroken)\b|"
+    r"\bnew\s+instructions?\s*[:\-]|system\s+prompt\s*[:\-]|"
+    r"do\s+not\s+tell\s+(?:the\s+)?(?:user|human|developer)|"
+    r"exfiltrat|~/\.(?:aws|ssh)\b|/\.ssh/|id_rsa|"
+    r"\.env\b(?:(?!\n).){0,40}(?:curl|wget|http|nc |base64|cat |exfil|send|post)|"
+    r"curl\b[^\n|]{0,80}\|\s*(?:ba)?sh|<\s*IMPORTANT\s*>",
     re.IGNORECASE,
 )
 
@@ -379,8 +399,17 @@ def encoded_payloads(doc: Document) -> Iterable[Finding]:
                 if key in seen:
                     continue
                 seen.add(key)
+                # Skip blobs that are plainly an embedded font/image/media asset.
+                prefix = line[max(0, match.start() - 24):match.start()]
+                if _DATA_ASSET_URI.search(prefix):
+                    continue
                 decoded = decode(blob)
-                if decoded and _texty(decoded) and _DECODED_PAYLOAD.search(decoded):
+                if (
+                    decoded
+                    and _texty(decoded)
+                    and not _STRUCTURED_HEAD.match(decoded)
+                    and _DECODED_PAYLOAD.search(decoded)
+                ):
                     yield Finding(
                         rule_id="CG404",
                         category="obfuscation",
@@ -396,11 +425,16 @@ def encoded_payloads(doc: Document) -> Iterable[Finding]:
                         context=doc.context,
                         extra={"encoding": kind, "decoded": _clip(decoded, 400)},
                     )
-                elif kind == "base64" and len(blob) >= 80 and (decoded is None or not _texty(decoded)):
+                elif (
+                    kind == "base64"
+                    and len(blob) >= 120
+                    and doc.context in (CTX_MCP_CONFIG, CTX_AGENT_INSTRUCTIONS)
+                    and (decoded is None or not _texty(decoded))
+                ):
                     yield Finding(
                         rule_id="CG403",
                         category="obfuscation",
-                        severity=adjust_severity(Severity.LOW, doc.context),
+                        severity=Severity.LOW,  # informational note, never boosted
                         message="Long base64 blob that does not decode to readable "
                         "text; inspect manually.",
                         path=doc.path,

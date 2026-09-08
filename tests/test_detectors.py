@@ -66,10 +66,18 @@ def test_regex_rule_fires(text, expected):
         "## System Requirements\n\n### System packages\n",
         "The assistant panel shows a status line.",
         "Set your API key in the .env file before running.",
+        "Replace /Users/<user>/Documents with a relative path.",
+        "an absolute path, since you are now inside the checkout",
+        "Your job is step 1: write a clean composition.",
+        "the agent reads BRIEF.md, then the assistant runs the render",
+        "do not send secrets or private material to the destination",
+        "signed upload secrets stay out of error messages",
+        "<div style=\"display:none\">Loading complete</div>",
+        "<!-- prettier-ignore: keep this block as-is for the docs build -->",
     ],
 )
-def test_benign_heading_and_setup_text_is_quiet(text):
-    assert run_rules(doc(text)) == [] or "CG103" not in rule_ids(run_rules(doc(text)))
+def test_benign_real_world_text_is_quiet(text):
+    assert list(run_rules(doc(text, context=CTX_AGENT_INSTRUCTIONS))) == []
 
 
 def test_benign_text_is_quiet():
@@ -149,8 +157,12 @@ def test_benign_base64_is_not_flagged():
     assert list(encoded_payloads(doc(f"sample = {blob}"))) == []
 
 
-def test_long_undecodable_base64_gets_low_note():
-    findings = list(encoded_payloads(doc("h" + "A1b2C3d4" * 12)))
+def test_long_undecodable_base64_note_only_in_agent_context():
+    blob = "h" + "A1b2C3d4" * 16  # 129 chars, invalid base64 length
+    # A plain doc / generic file: a stray base64 blob is almost always an asset.
+    assert list(encoded_payloads(doc(blob))) == []
+    # But inside CLAUDE.md it is worth a low-severity note.
+    findings = list(encoded_payloads(doc(blob, "CLAUDE.md", CTX_AGENT_INSTRUCTIONS)))
     assert {f.rule_id for f in findings} == {"CG403"}
     assert findings[0].severity == Severity.LOW
 

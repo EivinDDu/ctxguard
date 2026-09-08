@@ -36,3 +36,10 @@
 {"path": "benign/makefile_notes.md", "label": "benign", "note": "hard"}
 {"path": "malicious/indirect_via_issue_quote.md", "label": "malicious", "expect_rule": "CG101", "note": "hard"}
 {"path": "malicious/split_payload.md", "label": "malicious", "expect_rule": "CG301", "note": "hard"}
+{"path": "benign/ui_hidden_elements.md", "label": "benign", "note": "large-repo FP regression"}
+{"path": "benign/embedded_html_preview.json", "label": "benign", "note": "large-repo FP regression"}
+{"path": "benign/font_data_uri.css", "label": "benign", "note": "large-repo FP regression"}
+{"path": "benign/agent_docs.md", "label": "benign", "note": "large-repo FP regression"}
+{"path": "benign/dockerfile_install.md", "label": "benign", "note": "large-repo FP regression"}
+{"path": "benign/path_placeholders.md", "label": "benign", "note": "large-repo FP regression"}
+{"path": "benign/you_are_now_prose.md", "label": "benign", "note": "large-repo FP regression"}

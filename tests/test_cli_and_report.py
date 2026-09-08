@@ -80,8 +80,8 @@ def test_cli_fail_on_none_returns_zero(tmp_path):
 
 
 def test_cli_min_severity_filters(tmp_path, capsys):
-    # 96 '/' chars: valid base64 length, decodes to non-UTF-8 bytes -> CG403 (low).
-    (tmp_path / "README.md").write_text("Long blob: " + "/" * 96 + "\n")
+    # 128 '/' chars in CLAUDE.md: valid length, non-UTF-8 bytes -> CG403 (low).
+    (tmp_path / "CLAUDE.md").write_text("Long blob: " + "/" * 128 + "\n")
     seen = main(["scan", str(tmp_path), "--min-severity", "low", "--no-color", "--fail-on", "none"])
     assert "CG403" in capsys.readouterr().out and seen == 0
     hidden = main(["scan", str(tmp_path), "--min-severity", "high", "--no-color"])
