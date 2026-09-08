@@ -17,9 +17,9 @@ env/
 htmlcov/
 coverage.xml
 
-# ctxguard output
-ctxguard.json
-ctxguard.sarif
+# ctxsentry output
+ctxsentry.json
+ctxsentry.sarif
 
 # Editors / OS
 .vscode/

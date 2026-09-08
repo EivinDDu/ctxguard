@@ -1,0 +1,12 @@
+# ctxsentry's own documentation and test corpus necessarily contain the
+# payloads it detects. Suppress those so `ctxsentry scan .` stays green.
+README.md
+CHANGELOG.md
+tests/*
+tests/**
+docs/threat-model.md
+docs/walkthrough.md
+examples/*
+examples/**
+benchmark/*
+benchmark/**

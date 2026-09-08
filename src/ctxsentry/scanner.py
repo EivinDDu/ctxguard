@@ -10,15 +10,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence
 
-from ctxguard.contexts import (
+from ctxsentry.contexts import (
     CTX_VCS_META,
     DEFAULT_EXCLUDE_DIRS,
     TEXT_EXTENSIONS,
     classify,
 )
-from ctxguard.detectors import all_detectors, invisible_unicode, run_rules
-from ctxguard.document import Document
-from ctxguard.finding import Finding, Severity
+from ctxsentry.detectors import all_detectors, invisible_unicode, run_rules
+from ctxsentry.document import Document
+from ctxsentry.finding import Finding, Severity
 
 DEFAULT_MAX_BYTES = 1_000_000
 
@@ -132,14 +132,14 @@ def _rel(path: Path, config: ScanConfig) -> str:
 
 
 def _load_ignore_file(config: ScanConfig) -> List[tuple]:
-    """Parse ``.ctxguardignore`` at the scan root.
+    """Parse ``.ctxsentryignore`` at the scan root.
 
     Each non-comment line is ``path-glob`` or ``path-glob:RULE1,RULE2``. A bare
     glob suppresses every rule for matching files.
     """
 
     root = config.root if config.root.is_dir() else config.root.parent
-    ignore_path = root / ".ctxguardignore"
+    ignore_path = root / ".ctxsentryignore"
     entries: List[tuple] = []
     try:
         raw = ignore_path.read_text(encoding="utf-8")
@@ -218,10 +218,10 @@ def scan(config: ScanConfig) -> ScanResult:
     return result
 
 
-# Suppress a finding by putting `ctxguard: ignore` (optionally with rule ids) on
+# Suppress a finding by putting `ctxsentry: ignore` (optionally with rule ids) on
 # the flagged line or the line immediately above it.
 _SUPPRESS_RE = re.compile(
-    r"ctxguard:\s*(?:ignore|allow|disable|nosec)\b[ \t]*([A-Za-z0-9, ]*)",
+    r"ctxsentry:\s*(?:ignore|allow|disable|nosec)\b[ \t]*([A-Za-z0-9, ]*)",
     re.IGNORECASE,
 )
 

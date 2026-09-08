@@ -30,13 +30,19 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: pytest -q
       - name: Benchmark - detection must stay at 100% recall / 0 false positives
-        run: ctxguard bench --min-recall 1.0 --max-fp-rate 0.0 --min-rule-accuracy 1.0
-      - name: Dogfood - ctxguard scans itself
-        run: ctxguard scan . --fail-on high
+        run: ctxsentry bench --min-recall 1.0 --max-fp-rate 0.0 --min-rule-accuracy 1.0
+      - name: Dogfood - ctxsentry scans itself
+        run: ctxsentry scan . --fail-on high
       - name: Build SARIF report (artifact only)
-        run: ctxguard scan . --format sarif -o ctxguard.sarif --fail-on none
+        run: ctxsentry scan . --format sarif -o ctxsentry.sarif --fail-on none
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         with:
-          name: ctxguard-sarif
-          path: ctxguard.sarif
+          name: ctxsentry-sarif
+          path: ctxsentry.sarif
+      - name: Package builds and metadata is valid
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine check dist/*

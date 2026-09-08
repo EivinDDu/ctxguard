@@ -1,11 +1,11 @@
 """The benchmark corpus doubles as a regression gate: detection must stay at
 100% recall / 0 false positives / every malicious case hitting its named rule.
-If a change regresses that, this test fails before CI's `ctxguard bench` does.
+If a change regresses that, this test fails before CI's `ctxsentry bench` does.
 """
 
 from __future__ import annotations
 
-from ctxguard.benchmark import DEFAULT_BENCH_DIR, load_cases, run_benchmark
+from ctxsentry.benchmark import DEFAULT_BENCH_DIR, load_cases, run_benchmark
 
 
 def test_corpus_manifest_matches_files():

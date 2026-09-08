@@ -3,10 +3,29 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+> Releases before 0.4.0 were published under the name **ctxguard**; that name was
+> already taken on PyPI. Everything below is written with the current name.
+
+## [0.4.0] - 2026-09-08
+
+### Changed
+- **Renamed the project `ctxguard` → `ctxsentry`.** The PyPI distribution, the
+  CLI command, the import package, the ignore file (`.ctxsentryignore`) and the
+  inline suppression marker (`ctxsentry: ignore`) all use the new name. The
+  GitHub repository moved to `EivinDDu/ctxsentry` (old links redirect).
+
+### Added
+- **Published to PyPI** — `pip install ctxsentry` / `pipx install ctxsentry`.
+- `.github/workflows/publish.yml` — tagged releases build an sdist + wheel and
+  publish to PyPI via OIDC Trusted Publishing (no stored token).
+- `docs/RELEASING.md` — the release checklist and one-time PyPI setup.
+- Richer package metadata: per-version Python classifiers, `Repository` /
+  `Changelog` project URLs, and an sdist that ships the tests and benchmark.
+
 ## [0.3.0] - 2026-09-06
 
 ### Added
-- **Benchmark harness** — `ctxguard bench` scores the detectors against a
+- **Benchmark harness** — `ctxsentry bench` scores the detectors against a
   labelled corpus in `benchmark/` (38 cases) and reports precision, recall, F1,
   false-positive rate and per-rule accuracy. `--min-recall` / `--max-fp-rate` /
   `--min-rule-accuracy` make it a CI gate; CI now fails on any detection
@@ -50,7 +69,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `python -c '…socket…'`).
 
 ### Changed
-- `ctxguard rules` now lists the analytic detectors (`CG4xx`–`CG8xx`) alongside
+- `ctxsentry rules` now lists the analytic detectors (`CG4xx`–`CG8xx`) alongside
   the regex rules.
 - `CG403` moved from the regex table into the encoded-payload detector.
 
@@ -59,7 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Initial release.
 
 ### Added
-- `ctxguard scan <path>` — static scan of a repository for inbound
+- `ctxsentry scan <path>` — static scan of a repository for inbound
   prompt-injection payloads aimed at AI coding agents.
 - Context classifier (`mcp-config`, `agent-instructions`, `agent-skill`,
   `docs`, `generic`) with per-context severity boosting.
@@ -70,12 +89,12 @@ Initial release.
 - Output formats: `text`, `json`, `sarif` (2.1.0), `markdown`.
 - `--fail-on`, `--min-severity`, `--min-confidence`, `--all-text`,
   `--git-history`, `--exclude`, `-o/--output`.
-- Suppression via `.ctxguardignore` and inline `ctxguard: ignore [RULE…]`
+- Suppression via `.ctxsentryignore` and inline `ctxsentry: ignore [RULE…]`
   comments.
-- `ctxguard rules` — list all detection rules.
+- `ctxsentry rules` — list all detection rules.
 - CI matrix (Python 3.9–3.13, Linux + macOS); dogfood self-scan and SARIF
   artifact build on every run.
 - `.pre-commit-hooks.yaml` — usable as a hosted pre-commit repo
-  (`repo: https://github.com/EivinDDu/ctxguard`, `rev: v0.1.0`).
-- `action.yml` — composite GitHub Action (`uses: EivinDDu/ctxguard@v0.1.0`)
+  (`repo: https://github.com/EivinDDu/ctxsentry`, `rev: v0.1.0`).
+- `action.yml` — composite GitHub Action (`uses: EivinDDu/ctxsentry@v0.1.0`)
   with `path`, `fail-on`, `args`, and `version` inputs.

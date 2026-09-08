@@ -1,4 +1,4 @@
-name: ctxguard
+name: ctxsentry
 description: Scan a repository for prompt-injection payloads before an AI coding agent ingests it.
 branding:
   icon: shield
@@ -14,11 +14,11 @@ inputs:
     required: false
     default: high
   args:
-    description: Extra arguments passed verbatim to `ctxguard scan`.
+    description: Extra arguments passed verbatim to `ctxsentry scan`.
     required: false
     default: ""
   version:
-    description: Version specifier for the ctxguard package (e.g. "==0.3.0"). Defaults to this ref.
+    description: Version specifier for the ctxsentry package (e.g. "==0.3.0"). Defaults to this ref.
     required: false
     default: ""
 
@@ -29,14 +29,14 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
-    - name: Install ctxguard
+    - name: Install ctxsentry
       shell: bash
       run: |
         if [ -n "${{ inputs.version }}" ]; then
-          pip install "ctxguard${{ inputs.version }}"
+          pip install "ctxsentry${{ inputs.version }}"
         else
-          pip install "git+https://github.com/${{ github.action_repository || 'EivinDDu/ctxguard' }}@${{ github.action_ref || 'main' }}"
+          pip install "git+https://github.com/${{ github.action_repository || 'EivinDDu/ctxsentry' }}@${{ github.action_ref || 'main' }}"
         fi
-    - name: Run ctxguard
+    - name: Run ctxsentry
       shell: bash
-      run: ctxguard scan "${{ inputs.path }}" --fail-on "${{ inputs.fail-on }}" --no-color ${{ inputs.args }}
+      run: ctxsentry scan "${{ inputs.path }}" --fail-on "${{ inputs.fail-on }}" --no-color ${{ inputs.args }}

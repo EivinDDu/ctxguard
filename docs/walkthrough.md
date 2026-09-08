@@ -100,7 +100,7 @@ throwaway request-capture endpoint — a classic out-of-band exfiltration sink.
 ## The scan
 
 ```console
-$ ctxguard scan examples/malicious-repo
+$ ctxsentry scan examples/malicious-repo
 
 CRITICAL  .mcp.json:1:1     [CG702 mcp-tool-poisoning]  MCP server args pipe a download into a shell.
 CRITICAL  .mcp.json:9:1     [CG701 mcp-tool-poisoning]  MCP 'mcpServers.notes.tools.[0].description' field carries hidden instructions / references to secrets.
@@ -121,17 +121,17 @@ CRITICAL  README.md:26:1    [CG301 exfiltration]  Instruction to send secrets so
 scanned 4 file(s), skipped 0 — critical=14  high=2
 ```
 
-Exit code `1`. In a pre-commit hook or CI step (`ctxguard scan . --fail-on high`)
+Exit code `1`. In a pre-commit hook or CI step (`ctxsentry scan . --fail-on high`)
 that blocks the merge. Run it yourself right after `git clone`, before you open
 the folder in your editor.
 
 Every payload above is caught, at the exact line and column, with the invisible
-one decoded so you can read what it actually said. `ctxguard` did this with no
+one decoded so you can read what it actually said. `ctxsentry` did this with no
 network calls and no LLM — just pattern analysis, in a few milliseconds.
 
 ## What it does *not* do
 
-`ctxguard` is a tripwire, not a proof of safety. A novel injection written with
+`ctxsentry` is a tripwire, not a proof of safety. A novel injection written with
 no known lexical markers, or in a language its rules don't cover, can still pass.
 It raises the cost of the attack and puts suspicious content in front of a human.
 See [threat-model.md](threat-model.md) for the full boundary.

@@ -1,13 +1,13 @@
-"""Detectors turn a :class:`~ctxguard.document.Document` into findings.
+"""Detectors turn a :class:`~ctxsentry.document.Document` into findings.
 
 Two kinds live here:
 
-* ``run_rules`` applies the regex table in :mod:`ctxguard.rules`.
+* ``run_rules`` applies the regex table in :mod:`ctxsentry.rules`.
 * Hand-written detectors catch things a single regex cannot: invisible Unicode
   (with decoding of smuggled ASCII), bidi control abuse, oversized/padded lines,
   MCP config structure walks, and filename tricks.
 
-Every detector yields :class:`~ctxguard.finding.Finding` objects with a
+Every detector yields :class:`~ctxsentry.finding.Finding` objects with a
 context-adjusted severity via :func:`adjust_severity`.
 """
 
@@ -19,13 +19,13 @@ import json
 import re
 from typing import Callable, Iterable, List, Optional
 
-from ctxguard.contexts import (
+from ctxsentry.contexts import (
     CONTEXT_SEVERITY_BOOST,
     CTX_MCP_CONFIG,
 )
-from ctxguard.document import Document
-from ctxguard.finding import Finding, Severity
-from ctxguard.rules import RULES
+from ctxsentry.document import Document
+from ctxsentry.finding import Finding, Severity
+from ctxsentry.rules import RULES
 
 Detector = Callable[[Document], Iterable[Finding]]
 _DETECTORS: List[Detector] = []

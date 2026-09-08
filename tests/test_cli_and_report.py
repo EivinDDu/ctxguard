@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from ctxguard.cli import main
-from ctxguard.finding import Finding, Severity
-from ctxguard.report import render
-from ctxguard.scanner import ScanResult
+from ctxsentry.cli import main
+from ctxsentry.finding import Finding, Severity
+from ctxsentry.report import render
+from ctxsentry.scanner import ScanResult
 
 
 def _result_with_finding() -> ScanResult:
@@ -49,7 +49,7 @@ def test_sarif_report_is_valid():
     payload = json.loads(render(_result_with_finding(), "sarif"))
     assert payload["version"] == "2.1.0"
     run = payload["runs"][0]
-    assert run["tool"]["driver"]["name"] == "ctxguard"
+    assert run["tool"]["driver"]["name"] == "ctxsentry"
     assert run["results"][0]["level"] == "error"
     assert run["results"][0]["locations"][0]["physicalLocation"]["region"]["startLine"] == 3
 

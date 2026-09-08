@@ -1,7 +1,7 @@
 """Data-driven regex rules for text-pattern prompt-injection detection.
 
 Each :class:`Rule` is a compiled pattern plus metadata. Detectors in
-:mod:`ctxguard.detectors` also contribute findings that are not expressible as a
+:mod:`ctxsentry.detectors` also contribute findings that are not expressible as a
 single regex (invisible Unicode, HTML smuggling, JSON structure walks).
 """
 
@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 from typing import List, Pattern
 
-from ctxguard.finding import Severity
+from ctxsentry.finding import Severity
 
 _OWASP = "https://genai.owasp.org/llmrisk/llm01-prompt-injection/"
 _CSA_README = (
@@ -326,7 +326,7 @@ RULES: List[Rule] = [
         message="Inline style hides text visually while leaving it in the token stream.",
         reference=_CSA_README,
     ),
-    # CG403 / CG404 (encoded-payload detection) live in ctxguard.detectors:
+    # CG403 / CG404 (encoded-payload detection) live in ctxsentry.detectors:
     # they decode base64 / hex blobs and rescan the plaintext.
 ]
 

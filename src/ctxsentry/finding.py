@@ -1,4 +1,4 @@
-"""Core data types shared across ctxguard: :class:`Severity` and :class:`Finding`."""
+"""Core data types shared across ctxsentry: :class:`Severity` and :class:`Finding`."""
 
 from __future__ import annotations
 

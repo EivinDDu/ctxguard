@@ -1,13 +1,13 @@
-"""Render a :class:`~ctxguard.scanner.ScanResult` in the requested format."""
+"""Render a :class:`~ctxsentry.scanner.ScanResult` in the requested format."""
 
 from __future__ import annotations
 
 import json
 from typing import List
 
-from ctxguard import __version__
-from ctxguard.finding import Finding, Severity
-from ctxguard.scanner import ScanResult
+from ctxsentry import __version__
+from ctxsentry.finding import Finding, Severity
+from ctxsentry.scanner import ScanResult
 
 _COLORS = {
     Severity.CRITICAL: "\033[1;37;41m",
@@ -44,7 +44,7 @@ def _c(text: str, code: str, enabled: bool) -> str:
 def _text(result: ScanResult, *, color: bool) -> str:
     out: List[str] = []
     if not result.findings:
-        out.append(_c("✓ ctxguard: no prompt-injection indicators found", "\033[1;32m", color))
+        out.append(_c("✓ ctxsentry: no prompt-injection indicators found", "\033[1;32m", color))
     else:
         for f in result.findings:
             head = _c(f.severity.label.upper().rjust(8), _COLORS[f.severity], color)
@@ -74,7 +74,7 @@ def _text(result: ScanResult, *, color: bool) -> str:
 
 def _json(result: ScanResult) -> str:
     payload = {
-        "tool": "ctxguard",
+        "tool": "ctxsentry",
         "version": __version__,
         "summary": {
             "files_scanned": result.files_scanned,
@@ -89,7 +89,7 @@ def _json(result: ScanResult) -> str:
 
 
 def _markdown(result: ScanResult) -> str:
-    lines = [f"# ctxguard report", ""]
+    lines = [f"# ctxsentry report", ""]
     counts = result.counts_by_severity()
     lines.append(
         f"**{len(result.findings)} finding(s)** across {result.files_scanned} file(s) "
@@ -156,9 +156,9 @@ def _sarif(result: ScanResult) -> str:
             {
                 "tool": {
                     "driver": {
-                        "name": "ctxguard",
+                        "name": "ctxsentry",
                         "version": __version__,
-                        "informationUri": "https://github.com/EivinDDu/ctxguard",
+                        "informationUri": "https://github.com/EivinDDu/ctxsentry",
                         "rules": rules,
                     }
                 },

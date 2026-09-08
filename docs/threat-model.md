@@ -1,4 +1,4 @@
-# ctxguard threat model
+# ctxsentry threat model
 
 ## What we are defending
 
@@ -28,7 +28,7 @@ agent will read as part of its context.
 | Silent persistence | get the agent to write a backdoor or modify CI, and *not tell the user* |
 | Supply-chain pivot | get the agent to add a malicious dependency or commit to another repo |
 
-## Delivery surfaces ctxguard inspects
+## Delivery surfaces ctxsentry inspects
 
 1. **Agent instruction files** — `CLAUDE.md`, `AGENTS.md`, `.cursorrules`,
    `.github/copilot-instructions.md`, `.clinerules`, … loaded verbatim as
@@ -44,7 +44,7 @@ agent will read as part of its context.
 6. **Git history** (opt-in, `--git-history`) — commit messages, which stand in
    for PR/issue bodies fed to triage agents.
 
-## Techniques ctxguard looks for
+## Techniques ctxsentry looks for
 
 - **Direct override** — "ignore previous instructions", persona resets, chat
   role/template delimiters smuggled into prose.
@@ -61,14 +61,14 @@ agent will read as part of its context.
 
 - **Not a secret scanner.** Use `trufflehog` / `gitleaks` for that.
 - **Not a runtime MCP monitor.** Use `mcp-scan` for live tool-call inspection.
-- **Not SAST.** ctxguard does not look at program logic.
+- **Not SAST.** ctxsentry does not look at program logic.
 - **No semantic understanding.** A novel injection with no lexical markers, or
-  one written in a language ctxguard's rules don't cover, can pass. ctxguard
+  one written in a language ctxsentry's rules don't cover, can pass. ctxsentry
   raises the cost of an attack and puts suspicious content in front of a human;
   it is not a guarantee.
 
 ## False positives
 
 Security documentation *about* prompt injection (including this repository) will
-match. Suppress with `.ctxguardignore` entries or inline
-`<!-- ctxguard: ignore CG101 -->` markers, and raise `--min-confidence` in CI.
+match. Suppress with `.ctxsentryignore` entries or inline
+`<!-- ctxsentry: ignore CG101 -->` markers, and raise `--min-confidence` in CI.

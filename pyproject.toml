@@ -3,45 +3,61 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ctxguard"
-version = "0.3.0"
+name = "ctxsentry"
+version = "0.4.0"
 description = "Scan a repository for prompt-injection payloads before you point an AI coding agent at it."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
+license-files = ["LICENSE"]
 authors = [{ name = "EivinDDu" }]
 keywords = [
     "prompt-injection",
     "ai-security",
+    "llm-security",
     "supply-chain",
-    "llm",
     "mcp",
     "static-analysis",
     "coding-agent",
+    "devsecops",
+    "security-scanner",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
     "Topic :: Security",
     "Topic :: Software Development :: Quality Assurance",
 ]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "pytest-cov"]
+dev = ["pytest>=7", "pytest-cov", "build", "twine"]
 
 [project.scripts]
-ctxguard = "ctxguard.cli:main"
+ctxsentry = "ctxsentry.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/EivinDDu/ctxguard"
-Issues = "https://github.com/EivinDDu/ctxguard/issues"
+Homepage = "https://github.com/EivinDDu/ctxsentry"
+Repository = "https://github.com/EivinDDu/ctxsentry"
+Issues = "https://github.com/EivinDDu/ctxsentry/issues"
+Changelog = "https://github.com/EivinDDu/ctxsentry/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ctxguard"]
+packages = ["src/ctxsentry"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/benchmark", "/docs", "/README.md", "/CHANGELOG.md", "/LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

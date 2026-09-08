@@ -1,4 +1,4 @@
-"""Command-line entry point for ctxguard."""
+"""Command-line entry point for ctxsentry."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Sequence
 
-from ctxguard import __version__
-from ctxguard.finding import Severity
-from ctxguard.report import render
-from ctxguard.rules import RULES
-from ctxguard.scanner import DEFAULT_MAX_BYTES, ScanConfig, scan
+from ctxsentry import __version__
+from ctxsentry.finding import Severity
+from ctxsentry.report import render
+from ctxsentry.rules import RULES
+from ctxsentry.scanner import DEFAULT_MAX_BYTES, ScanConfig, scan
 
 _EPILOG = """\
 exit codes:
@@ -20,15 +20,15 @@ exit codes:
   2  usage / runtime error
 
 examples:
-  ctxguard scan .
-  ctxguard scan ../some-repo --format sarif -o ctxguard.sarif
-  ctxguard scan . --fail-on medium --git-history
+  ctxsentry scan .
+  ctxsentry scan ../some-repo --format sarif -o ctxsentry.sarif
+  ctxsentry scan . --fail-on medium --git-history
 """
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="ctxguard",
+        prog="ctxsentry",
         description=(
             "Scan a repository for prompt-injection payloads before you point "
             "an AI coding agent at it."
@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--version", action="version", version=f"ctxguard {__version__}")
+    parser.add_argument("--version", action="version", version=f"ctxsentry {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     scan_p = sub.add_parser("scan", help="scan a path", description="Scan a file or directory.")
@@ -123,7 +123,7 @@ _CONF_ORDER = {"low": 0, "medium": 1, "high": 2}
 def _run_scan(args: argparse.Namespace) -> int:
     target = Path(args.path)
     if not target.exists():
-        print(f"ctxguard: path not found: {target}", file=sys.stderr)
+        print(f"ctxsentry: path not found: {target}", file=sys.stderr)
         return 2
 
     config = ScanConfig(
@@ -149,7 +149,7 @@ def _run_scan(args: argparse.Namespace) -> int:
     report = render(result, args.format, color=not args.no_color and _stdout_is_tty(args))
     if args.output:
         Path(args.output).write_text(report + "\n", encoding="utf-8")
-        print(f"ctxguard: wrote {len(result.findings)} finding(s) to {args.output}")
+        print(f"ctxsentry: wrote {len(result.findings)} finding(s) to {args.output}")
     else:
         print(report)
 
@@ -196,11 +196,11 @@ def _run_rules() -> int:
 
 
 def _run_bench(args: argparse.Namespace) -> int:
-    from ctxguard.benchmark import DEFAULT_BENCH_DIR, run_benchmark
+    from ctxsentry.benchmark import DEFAULT_BENCH_DIR, run_benchmark
 
     bench_dir = Path(args.dir).resolve() if args.dir else DEFAULT_BENCH_DIR
     if not (bench_dir / "cases.jsonl").is_file():
-        print(f"ctxguard: no benchmark corpus at {bench_dir}", file=sys.stderr)
+        print(f"ctxsentry: no benchmark corpus at {bench_dir}", file=sys.stderr)
         return 2
 
     res = run_benchmark(bench_dir)

@@ -1,4 +1,4 @@
-"""Score ctxguard against a labelled corpus.
+"""Score ctxsentry against a labelled corpus.
 
 The corpus lives in ``benchmark/`` at the repo root: ``cases.jsonl`` lists each
 fixture with a label (``malicious`` / ``benign``) and, for malicious cases, the
@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
 
-from ctxguard.scanner import ScanConfig, scan
+from ctxsentry.scanner import ScanConfig, scan
 
 DEFAULT_BENCH_DIR = Path(__file__).resolve().parents[2] / "benchmark"
 

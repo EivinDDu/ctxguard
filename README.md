@@ -1,9 +1,13 @@
-# ctxguard
+# ctxsentry
 
 **Scan a repository for prompt-injection payloads *before* you point an AI coding agent at it.**
 
+[![PyPI](https://img.shields.io/pypi/v/ctxsentry)](https://pypi.org/project/ctxsentry/)
+[![CI](https://github.com/EivinDDu/ctxsentry/actions/workflows/ci.yml/badge.svg)](https://github.com/EivinDDu/ctxsentry/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
+<sub>Formerly published as `ctxguard` (≤ 0.3.0); renamed because that name was taken on PyPI.</sub>
 
 ---
 
@@ -21,7 +25,7 @@ Cloud Security Alliance research in 2026 documented "README instruction
 injection" against coding agents with attack success rates of 41–84%, and MCP
 tool-description poisoning (CVE-2025-54136) works the same way.
 
-`ctxguard` is a fast, dependency-free static scanner that flags that content so a
+`ctxsentry` is a fast, dependency-free static scanner that flags that content so a
 human reviews it first.
 
 **→ See [`docs/walkthrough.md`](docs/walkthrough.md) for a worked example: five
@@ -50,16 +54,16 @@ files as authoritative instructions.
 ## Install
 
 ```bash
-pipx install ctxguard        # recommended
+pipx install ctxsentry        # recommended
 # or
-pip install ctxguard
+pip install ctxsentry
 ```
 
 From source:
 
 ```bash
-git clone https://github.com/EivinDDu/ctxguard
-cd ctxguard
+git clone https://github.com/EivinDDu/ctxsentry
+cd ctxsentry
 pip install -e ".[dev]"
 ```
 
@@ -67,33 +71,33 @@ pip install -e ".[dev]"
 
 ```bash
 # scan the current repo
-ctxguard scan .
+ctxsentry scan .
 
 # scan a repo you just cloned, before opening it in your editor
-ctxguard scan ../suspicious-repo
+ctxsentry scan ../suspicious-repo
 
 # scan only what changed — fast pre-commit / PR gating
-ctxguard scan . --changed              # vs HEAD (+ staged/unstaged/untracked)
-ctxguard scan . --changed origin/main  # vs a base branch
+ctxsentry scan . --changed              # vs HEAD (+ staged/unstaged/untracked)
+ctxsentry scan . --changed origin/main  # vs a base branch
 
 # machine-readable output
-ctxguard scan . --format json  -o ctxguard.json
-ctxguard scan . --format sarif -o ctxguard.sarif   # upload to GitHub code scanning
+ctxsentry scan . --format json  -o ctxsentry.json
+ctxsentry scan . --format sarif -o ctxsentry.sarif   # upload to GitHub code scanning
 
 # gate a pipeline
-ctxguard scan . --fail-on medium --git-history
+ctxsentry scan . --fail-on medium --git-history
 
 # tune the noise
-ctxguard scan . --min-severity medium --min-confidence medium
+ctxsentry scan . --min-severity medium --min-confidence medium
 
 # list every rule
-ctxguard rules
+ctxsentry rules
 
 # score the detectors against the labelled corpus
-ctxguard bench
+ctxsentry bench
 ```
 
-By default `ctxguard` only reads files an agent treats as context (docs, rule
+By default `ctxsentry` only reads files an agent treats as context (docs, rule
 files, MCP config, `*.md`, `*.txt`, config formats). Add `--all-text` to sweep
 source files too.
 
@@ -109,24 +113,24 @@ source files too.
 
 ```yaml
 # .pre-commit-config.yaml
-- repo: https://github.com/EivinDDu/ctxguard
+- repo: https://github.com/EivinDDu/ctxsentry
   rev: v0.3.0
   hooks:
-    - id: ctxguard             # add: args: ["--changed"] for staged-only scans
+    - id: ctxsentry             # add: args: ["--changed"] for staged-only scans
 ```
 
 ### GitHub Action
 
 ```yaml
-# .github/workflows/ctxguard.yml
-name: ctxguard
+# .github/workflows/ctxsentry.yml
+name: ctxsentry
 on: [push, pull_request]
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: EivinDDu/ctxguard@v0.3.0
+      - uses: EivinDDu/ctxsentry@v0.3.0
         with:
           fail-on: high        # optional (default: high)
           # path: .
@@ -138,7 +142,7 @@ jobs:
 Known-good matches (your own security docs, test fixtures) can be silenced two
 ways:
 
-- **`.ctxguardignore`** at the scan root — one glob per line, optionally
+- **`.ctxsentryignore`** at the scan root — one glob per line, optionally
   scoped to specific rule ids:
 
   ```
@@ -150,7 +154,7 @@ ways:
 - **Inline comment** on the flagged line or the line above it:
 
   ```markdown
-  <!-- ctxguard: ignore CG401 -- example payload documented on purpose -->
+  <!-- ctxsentry: ignore CG401 -- example payload documented on purpose -->
   ```
 
 ## How it works
@@ -160,7 +164,7 @@ path ─▶ file walk (skips vendored dirs, binaries, >1 MB)
      ─▶ decode (utf-8 / utf-16 / latin-1), keep invisible chars intact
      ─▶ classify context (mcp-config │ agent-instructions │ agent-skill │ docs │ generic)
      ─▶ run detectors:
-          • regex rule table           (ctxguard/rules.py)
+          • regex rule table           (ctxsentry/rules.py)
           • invisible-Unicode scanner   (decodes U+E00xx tag runs)
           • deobfuscated rescan         (strip zero-width, fold homoglyphs, re-run rules)
           • encoded-payload scanner     (decodes base64 / hex, rescans plaintext)
@@ -174,7 +178,7 @@ No network calls. No LLM. Deterministic.
 
 ## Benchmark
 
-`ctxguard bench` runs the detectors over a labelled corpus in [`benchmark/`](benchmark)
+`ctxsentry bench` runs the detectors over a labelled corpus in [`benchmark/`](benchmark)
 (20 malicious fixtures across every family, 18 realistic benign ones) and reports
 precision / recall / F1 / false-positive rate. CI fails the build on any
 regression:
@@ -201,12 +205,16 @@ docs that mention API keys, `### System Requirements` headings — content that
 ```bash
 pip install -e ".[dev]"
 pytest
-ctxguard bench          # detection score against benchmark/
+ctxsentry bench          # detection score against benchmark/
 ```
 
 Adding a detector? Add a fixture to `benchmark/malicious/` (and a benign
 counterpart if it could misfire), list it in `benchmark/cases.jsonl`, and keep
-`ctxguard bench` at 100% recall / 0 false positives.
+`ctxsentry bench` at 100% recall / 0 false positives.
+
+Releasing is documented in [`docs/RELEASING.md`](docs/RELEASING.md) — tag a
+version and publish a GitHub Release; CI builds and uploads to PyPI via Trusted
+Publishing.
 
 ## License
 
